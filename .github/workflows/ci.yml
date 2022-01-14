@@ -1,0 +1,95 @@
+name: CI
+
+on: [push, pull_request, workflow_dispatch]
+
+env:
+  BUILD_TYPE: Release
+  CONAN_CACHE_DIR: ~/.conan/data
+jobs:
+  # This workflow contains a single job called "build"
+  build:
+    strategy:
+      matrix:
+        config:
+          - {name: "Linux", os: ubuntu-latest, cmakegen: "", llvm: "linux-gnu-ubuntu-20.04", llvm-ext: ".tar.xz", tc: "linux-ubuntu14", tc-ext: ".tar.gz", unpack: "tar xf"}
+
+    runs-on: ${{ matrix.config.os }}
+    name: ${{ matrix.config.name }}
+
+    steps:
+      - uses: actions/checkout@v2
+      - name:  Cache Conan Data
+        uses: actions/cache@v2
+        env:
+          cache-name: conan-cache
+        with:
+          path: ${CONAN_CACHE_DIR}
+          key: ${{ runner.os }}-build-${{ env.cache-name }}
+
+      # Runs a single command using the runners shell
+      - name:  Requirements (Linux)
+        if: matrix.config.name == 'Linux'
+        run: |
+          sudo apt-get update 
+          sudo apt-get install -y libboost-filesystem-dev libboost-system-dev libboost-program-options-dev
+          pip install --upgrade conan
+          conan user
+          if ! [[ $(conan profile list) = *default* ]]
+          then
+            conan profile new default --detect
+          fi
+          conan profile update settings.compiler.libcxx=libstdc++11 default
+    
+      - name: Test Requirements (RISC-V cross toolchain)
+        shell: bash
+        working-directory: ${{runner.workspace}}
+        run: |
+          TC_NAME="riscv64-unknown-elf-gcc-8.3.0-2020.04.0-x86_64-${{ matrix.config.tc }}"
+          wget https://static.dev.sifive.com/dev-tools/$TC_NAME${{ matrix.config.tc-ext }}
+          ${{ matrix.config.unpack }} $TC_NAME${{ matrix.config.tc-ext }}
+          mv $TC_NAME riscv-tc
+      
+      - name: Requirements (ETISS)
+        shell: bash
+        working-directory: ${{runner.workspace}}
+        run: |
+          git clone https://github.com/tum-ei-eda/etiss.git etiss-src
+          cd etiss-src
+          git checkout 36902d32ae760aa3c413ca06189e6515bc28d79c
+          cd ..
+          cmake -S etiss-src -B etiss-build -DCMAKE_BUILD_TYPE=${BUILD_CONFIG} -DCMAKE_INSTALL_PREFIX=etiss
+          cmake --build etiss-build --config ${BUILD_CONFIG} --parallel $(nproc)
+          cmake --install etiss-build --config ${BUILD_CONFIG}
+
+      - name: Configure CMake
+        shell: bash
+        working-directory: ${{runner.workspace}}
+        run: |
+          cmake -S ${GITHUB_WORKSPACE} -B build -DETISS_PREFIX=etiss -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DCMAKE_INSTALL_PREFIX=install
+
+      - name: Build
+        shell: bash
+        working-directory: ${{runner.workspace}}/build
+        run: |
+          cmake --build . --config ${BUILD_TYPE} --parallel $(nproc)
+
+      - name: Install
+        shell: bash
+        working-directory: ${{runner.workspace}}/build
+        run: |
+          cmake --build . --config $BUILD_TYPE --target install
+
+      - name: Create Test Environment
+        run: |
+          cmake -E make_directory ${{runner.workspace}}/test
+      
+      - name: Setup tests
+        working-directory: ${{runner.workspace}}/test
+        run: |
+          ${{runner.workspace}}/riscv-tc/bin/riscv64-unknown-elf-gcc -march=rv32im -mabi=ilp32 -O3 -T ${GITHUB_WORKSPACE}/examples/barebone_vp/target_software/ld.ld -nostartfiles ${GITHUB_WORKSPACE}/examples/barebone_
+vp/target_software/crt1.s ${GITHUB_WORKSPACE}/examples/barebone_vp/target_software/helloworld.c -DETISSVP_LOGGER=0xf0000000 -o helloworld.elf
+          
+      - name: Run tests
+        working-directory: ${{runner.workspace}}/install
+        run: |
+          example/barebone_vp --etiss ${GITHUB_WORKSPACE}/examples/barebone_vp/ini/etiss.ini --elfs ${{runner.workspace}}/test/helloworld.elf
