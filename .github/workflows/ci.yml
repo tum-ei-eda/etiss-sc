@@ -14,7 +14,7 @@ jobs:
           - {name: "Linux", os: ubuntu-latest, cmakegen: "", llvm: "linux-gnu-ubuntu-20.04", llvm-ext: ".tar.xz", tc: "linux-ubuntu14", tc-ext: ".tar.gz", unpack: "tar xf"}
 
     runs-on: ${{ matrix.config.os }}
-    name: ${{ matrix.config.name }}
+    name: ${{ matrix.config.name }}_build
 
     steps:
       - uses: actions/checkout@v2
@@ -26,9 +26,10 @@ jobs:
           path: ${CONAN_CACHE_DIR}
           key: ${{ runner.os }}-build-${{ env.cache-name }}
 
-      # Runs a single command using the runners shell
       - name:  Requirements (Linux)
         if: matrix.config.name == 'Linux'
+        shell: bash
+        working-directory: ${{runner.workspace}}
         run: |
           sudo apt-get update 
           sudo apt-get install -y libboost-filesystem-dev libboost-system-dev libboost-program-options-dev
@@ -45,6 +46,7 @@ jobs:
           mv $LLVM_NAME llvm-lib
 
       - name: Test Requirements (RISC-V cross toolchain)
+        if: matrix.config.name == 'Linux'
         shell: bash
         working-directory: ${{runner.workspace}}
         run: |
@@ -92,7 +94,7 @@ jobs:
         working-directory: ${{runner.workspace}}/test
         run: |
           ${{runner.workspace}}/riscv-tc/bin/riscv64-unknown-elf-gcc -march=rv32im -mabi=ilp32 -O3 -T ${GITHUB_WORKSPACE}/examples/barebone_vp/target_software/link.ld -nostartfiles ${GITHUB_WORKSPACE}/examples/barebone_vp/target_software/crt0.s ${GITHUB_WORKSPACE}/examples/barebone_vp/target_software/helloworld.c -DETISSVP_LOGGER=0xf0000000 -o helloworld.elf
-          
+
       - name: Run tests
         working-directory: ${{runner.workspace}}/install
         run: |
