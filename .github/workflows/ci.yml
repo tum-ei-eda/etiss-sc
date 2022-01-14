@@ -39,7 +39,11 @@ jobs:
             conan profile new default --detect
           fi
           conan profile update settings.compiler.libcxx=libstdc++11 default
-    
+          LLVM_NAME="clang+llvm-11.0.0-x86_64-${{ matrix.config.llvm }}"
+          wget https://github.com/llvm/llvm-project/releases/download/llvmorg-11.0.0/$LLVM_NAME${{ matrix.config.llvm-ext }}
+          ${{ matrix.config.unpack }} $LLVM_NAME${{ matrix.config.llvm-ext }}
+          mv $LLVM_NAME llvm-lib
+
       - name: Test Requirements (RISC-V cross toolchain)
         shell: bash
         working-directory: ${{runner.workspace}}
@@ -57,6 +61,7 @@ jobs:
           cd etiss-src
           git checkout 36902d32ae760aa3c413ca06189e6515bc28d79c
           cd ..
+          export LLVM_DIR=${{runner.workspace}}/llvm-lib
           cmake -S etiss-src -B etiss-build -DCMAKE_BUILD_TYPE=${BUILD_TYPE} -DCMAKE_INSTALL_PREFIX=etiss
           cmake --build etiss-build --config ${BUILD_TYPE} --parallel $(nproc)
           cmake --install etiss-build --config ${BUILD_TYPE}
