@@ -47,7 +47,7 @@ jobs:
           TC_NAME="riscv64-unknown-elf-gcc-8.3.0-2020.04.0-x86_64-${{ matrix.config.tc }}"
           wget https://static.dev.sifive.com/dev-tools/$TC_NAME${{ matrix.config.tc-ext }}
           ${{ matrix.config.unpack }} $TC_NAME${{ matrix.config.tc-ext }}
-          mv $TC_NAME riscv-tc
+          mv ${TC_NAME} riscv-tc
       
       - name: Requirements (ETISS)
         shell: bash
@@ -57,15 +57,15 @@ jobs:
           cd etiss-src
           git checkout 36902d32ae760aa3c413ca06189e6515bc28d79c
           cd ..
-          cmake -S etiss-src -B etiss-build -DCMAKE_BUILD_TYPE=${BUILD_CONFIG} -DCMAKE_INSTALL_PREFIX=etiss
-          cmake --build etiss-build --config ${BUILD_CONFIG} --parallel $(nproc)
-          cmake --install etiss-build --config ${BUILD_CONFIG}
+          cmake -S etiss-src -B etiss-build -DCMAKE_BUILD_TYPE=${BUILD_TYPE} -DCMAKE_INSTALL_PREFIX=etiss
+          cmake --build etiss-build --config ${BUILD_TYPE} --parallel $(nproc)
+          cmake --install etiss-build --config ${BUILD_TYPE}
 
       - name: Configure CMake
         shell: bash
         working-directory: ${{runner.workspace}}
         run: |
-          cmake -S ${GITHUB_WORKSPACE} -B build -DETISS_PREFIX=etiss -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DCMAKE_INSTALL_PREFIX=install
+          cmake -S ${GITHUB_WORKSPACE} -B build -DETISS_PREFIX=etiss -DCMAKE_BUILD_TYPE=${BUILD_TYPE} -DCMAKE_INSTALL_PREFIX=install
 
       - name: Build
         shell: bash
@@ -77,7 +77,7 @@ jobs:
         shell: bash
         working-directory: ${{runner.workspace}}/build
         run: |
-          cmake --build . --config $BUILD_TYPE --target install
+          cmake --build . --config ${BUILD_TYPE} --target install
 
       - name: Create Test Environment
         run: |
