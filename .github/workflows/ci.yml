@@ -93,7 +93,7 @@ jobs:
       - name: Setup tests
         working-directory: ${{runner.workspace}}/test
         run: |
-          ${{runner.workspace}}/riscv-tc/bin/riscv64-unknown-elf-gcc -march=rv32im -mabi=ilp32 -O3 -T ${GITHUB_WORKSPACE}/examples/barebone_vp/target_software/link.ld -nostartfiles ${GITHUB_WORKSPACE}/examples/barebone_vp/target_software/crt0.s ${GITHUB_WORKSPACE}/examples/barebone_vp/target_software/helloworld.c -DETISSVP_LOGGER=0xf0000000 -o helloworld.elf
+          ${{runner.workspace}}/riscv-tc/bin/riscv64-unknown-elf-gcc -march=rv32im -mabi=ilp32 -O3 -T ${GITHUB_WORKSPACE}/examples/barebone_vp/target_software/link.ld -nostartfiles ${GITHUB_WORKSPACE}/examples/barebone_vp/target_software/crt0.s ${GITHUB_WORKSPACE}/examples/barebone_vp/target_software/helloworld.c ${GITHUB_WORKSPACE}/examples/barebone_vp/target_software/syscalls.c -DETISSVP_LOGGER=0xf0000000 -o helloworld.elf
 
       - name: Run tests
         working-directory: ${{runner.workspace}}/install
