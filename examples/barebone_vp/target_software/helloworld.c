@@ -15,10 +15,12 @@
  */
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-/// @file helloworld.cpp
+/// @file helloworld.c
 /// @date 2022-01-12
 /// @brief target software test file "hello world" on iss I/O
 ////////////////////////////////////////////////////////////////////////////////////////////////////
+
+#include "stdio.h"
 
 #define PRINT_CHAR(LOGGER_ADDR, VAL) *(volatile char *)(LOGGER_ADDR) = (VAL)
 
@@ -35,5 +37,6 @@ void custom_print_string(volatile char *logger_addr, const char *string)
 int main()
 {
     custom_print_string((char *)ETISSVP_LOGGER, "Hello World! From ETISS Logger Plugin!\n");
+    printf("hello world from printf!\n");
     return 0;
 }

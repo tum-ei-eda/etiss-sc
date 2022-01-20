@@ -37,7 +37,7 @@ add_subdirectory(<path/to/etissvp>)
 1. Minimal Target Software
 ```
 export RISCV=<path/to/riscv/gnu/toolchain>
-$RISCV/bin/riscv64-unknown-elf-gcc -march=rv32im -mabi=ilp32 -O3 -T examples/barebone_vp/target_software/link.ld -nostartfiles examples/barebone_vp/target_software/crt0.s examples/barebone_vp/target_software/helloworld.c -DETISSVP_LOGGER=0xf0000000 -o target_software.elf
+$RISCV/bin/riscv64-unknown-elf-gcc -march=rv32im -mabi=ilp32 -O3 -T examples/barebone_vp/target_software/link.ld -nostartfiles examples/barebone_vp/target_software/crt0.s examples/barebone_vp/target_software/helloworld.c examples/barebone_vp/target_software/syscall.c -DETISSVP_LOGGER=0xf0000000 -o target_software.elf
 ```
 2. Execute Target Software
 ```
