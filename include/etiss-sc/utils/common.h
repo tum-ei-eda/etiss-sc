@@ -174,7 +174,7 @@ class CommandLineParser
 
                 if (remote_debug_port != "")
                 {
-                    temp_config_file << "[Plugin gdbserver]" << std::endl << " port=" << remote_debug_port << std::endl;
+                    temp_config_file << "[Plugin gdbserver]" << std::endl << " plugin.gdbserver.port=" << remote_debug_port << std::endl;
                 }
 
                 temp_config_file.close();
