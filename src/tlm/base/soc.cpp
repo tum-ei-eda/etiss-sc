@@ -28,9 +28,9 @@ etiss_sc::SoC::SoC(sc_core::sc_module_name name, etiss_sc::SoCParams &&soc_param
 {
 }
 
-const etiss_sc::CPU &etiss_sc::SoC::getCPU(std::string name) const
+const etiss_sc::CPUBase &etiss_sc::SoC::getCPU(std::string name) const
 {
-    CPU *cpu{ nullptr };
+    CPUBase *cpu{ nullptr };
     try
     {
         cpu = cpus_.at(name).get();
@@ -60,7 +60,7 @@ const etiss_sc::Mem *etiss_sc::SoC::getMem(std::string name) const
 
 sc_core::sc_signal<bool> *etiss_sc::SoC::getIRQ(std::string cpu_name, size_t num)
 {
-    CPU *cpu{ nullptr };
+    CPUBase *cpu{ nullptr };
     try
     {
         cpu = cpus_.at(cpu_name).get();
@@ -81,7 +81,7 @@ void etiss_sc::SoC::setup()
     addBus(bus_name, std::move(soc_params_.bus_params_));
     addCPU(soc_params_.cpu_factory_.get(), bus_name);
 
-    const CPU *cpu{ nullptr };
+    const CPUBase *cpu{ nullptr };
     try
     {
         cpu = &getCPU(cpu_name);
@@ -139,7 +139,7 @@ void etiss_sc::SoC::addBus(std::string name, BusParams &&bus_params)
     buses_.insert(std::make_pair(name, std::move(bus)));
 }
 
-const etiss_sc::CPU *etiss_sc::SoC::addCPU(CPUFactory *cpu_factory, std::string bus_name)
+const etiss_sc::CPUBase *etiss_sc::SoC::addCPU(CPUFactory *cpu_factory, std::string bus_name)
 {
     auto cpu_name = soc_params_.cpu_factory_.get()->get_name();
     auto cpu = cpu_factory->create(cpu_name.c_str());
@@ -154,8 +154,8 @@ const etiss_sc::CPU *etiss_sc::SoC::addCPU(CPUFactory *cpu_factory, std::string 
     {
         XREPORT_FATAL("bus not found in SoC::addCPU()");
     }
-    bus->connectMaster(cpu->instr_sock_i_.get());
-    bus->connectMaster(cpu->data_sock_i_.get());
+    bus->connectMaster(cpu->instr_sock_.get());
+    bus->connectMaster(cpu->data_sock_.get());
 
     cpus_.insert(std::make_pair(cpu_name, std::move(cpu)));
     return cpus_[cpu_name].get();
