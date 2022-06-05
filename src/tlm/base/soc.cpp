@@ -154,8 +154,8 @@ const etiss_sc::CPUBase *etiss_sc::SoC::addCPU(CPUFactory *cpu_factory, std::str
     {
         XREPORT_FATAL("bus not found in SoC::addCPU()");
     }
-    bus->connectMaster(cpu->instr_sock_.get());
-    bus->connectMaster(cpu->data_sock_.get());
+    bus->connectMaster(cpu->instr_sock_i_.get());
+    bus->connectMaster(cpu->data_sock_i_.get());
 
     cpus_.insert(std::make_pair(cpu_name, std::move(cpu)));
     return cpus_[cpu_name].get();
