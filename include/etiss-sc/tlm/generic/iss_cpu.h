@@ -23,6 +23,7 @@
 #define __ETISS_SC_TLM_GENERIC_ISS_CPU_H__
 
 #include "etiss-sc/tlm/generic/cpu_base.h"
+#include "tlm_utils/simple_initiator_socket.h"
 
 #include <string>
 #include <vector>

@@ -26,7 +26,7 @@
 #include <string>
 
 #include "systemc"
-#include "tlm_utils/simple_initiator_socket.h"
+#include "tlm.h"
 
 #include "etiss-sc/utils/common.h"
 #include "etiss-sc/utils/xreport.hpp"
