@@ -511,8 +511,15 @@ void etiss_sc::ISS_CPU::updateSystemCTime(sc_core::sc_time &time_offset)
     if (sc_core::sc_time_stamp() == sc_core::SC_ZERO_TIME ||
         time_offset > sc_core::sc_time{ static_cast<double>(quantum_), sc_core::SC_PS })
     {
-        wait(time_offset);
-        time_offset = sc_core::sc_time{ 0, sc_core::SC_PS };
+        if (pause_cpu_i_.read() == true)
+        {
+            wait(pause_cpu_i_.negedge_event());
+        }
+        else
+        {
+            wait(time_offset);
+            time_offset = sc_core::sc_time{ 0, sc_core::SC_PS };
+        }
     }
 }
 

@@ -101,6 +101,8 @@ class ISS_CPU final : public CPUBase, public ETISS_System
 
     int32_t get_etiss_status(void) { return etiss_status_; }
 
+    sc_core::sc_in<bool> pause_cpu_i_{ "pause_cpu" };
+
   private:
     std::shared_ptr<etiss::CPUCore> etiss_core_{ nullptr };
     std::shared_ptr<etiss::InterruptHandler> irq_handler_{ nullptr };
