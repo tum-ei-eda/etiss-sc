@@ -19,8 +19,6 @@
 /// @date 2022-05-30
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
-#define SC_INCLUDE_DYNAMIC_PROCESSES      // crucial for sc_spawn
-
 #include "etiss-sc/tlm/generic/iss_cpu.h"
 #include "etiss/fault/Stressor.h"
 #include "etiss-sc/utils/plugins.h"
@@ -377,32 +375,6 @@ etiss_int32 etiss_sc::ISS_CPU::systemCallDbgWrite(etiss_uint64 addr, etiss_uint8
     return etiss::RETURNCODE::NOERROR;
 }
 
-/************************ pause and resume logic ************************/
-
-void etiss_sc::ISS_CPU::register_event_pause_cpu(sc_core::sc_event& event)
-{
-    auto pause_cpu_action = [this]() { cpu_paused_ = true; };
-
-    pause_cpu_event_ = &event;
-    sc_core::sc_spawn_options options;
-    options.spawn_method();             // Spawned process shall be a method process
-    options.set_sensitivity(&event);    // Spawned process shall be sensitive to pause_cpu event
-    options.dont_initialize();
-    sc_core::sc_spawn(pause_cpu_action, "pause_cpu_action", &options);
-}
-
-void etiss_sc::ISS_CPU::register_event_resume_cpu(sc_core::sc_event& event)
-{
-    auto resume_cpu_action = [this]() { cpu_paused_ = false; };
-
-    resume_cpu_event_ = &event;
-    sc_core::sc_spawn_options options;
-    options.spawn_method();             // Spawned process shall be a method process
-    options.set_sensitivity(&event);    // Spawned process shall be sensitive to pause_cpu event
-    options.dont_initialize();
-    sc_core::sc_spawn(resume_cpu_action, "resume_cpu_action", &options);
-}
-
 /************************ reset and execute logic ***********************/
 
 void etiss_sc::ISS_CPU::resetMethod()
@@ -543,22 +515,8 @@ void etiss_sc::ISS_CPU::updateSystemCTime(sc_core::sc_time &time_offset)
     if (sc_core::sc_time_stamp() == sc_core::SC_ZERO_TIME ||
         time_offset > sc_core::sc_time{ static_cast<double>(quantum_), sc_core::SC_PS })
     {
-        if (cpu_paused_)
-        {
-            if (resume_cpu_event_ == nullptr)
-            {
-                etiss::log(etiss::ERROR, "ISS CPU is paused but there is no resume event registered.");
-            }
-            else
-            {
-                wait(*resume_cpu_event_);
-            }
-        }
-        else
-        {
-            wait(time_offset);
-            time_offset = sc_core::sc_time{ 0, sc_core::SC_PS };
-        }
+        wait(time_offset);
+        time_offset = sc_core::sc_time{ 0, sc_core::SC_PS };
     }
 }
 

@@ -101,9 +101,6 @@ class ISS_CPU final : public CPUBase, public ETISS_System
 
     int32_t get_etiss_status(void) { return etiss_status_; }
 
-    void register_event_pause_cpu(sc_core::sc_event& event);
-    void register_event_resume_cpu(sc_core::sc_event& event);
-
   private:
     std::shared_ptr<etiss::CPUCore> etiss_core_{ nullptr };
     std::shared_ptr<etiss::InterruptHandler> irq_handler_{ nullptr };
@@ -120,10 +117,6 @@ class ISS_CPU final : public CPUBase, public ETISS_System
         TERMINATED
     } status_{};
     int32_t etiss_status_{ etiss::RETURNCODE::NOERROR };
-
-    bool cpu_paused_{ false };
-    sc_core::sc_event* pause_cpu_event_{ nullptr };
-    sc_core::sc_event* resume_cpu_event_{ nullptr };
 
     virtual void resetMethod();
     virtual void execute();
