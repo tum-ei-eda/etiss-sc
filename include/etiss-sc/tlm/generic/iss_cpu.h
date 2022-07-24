@@ -100,6 +100,8 @@ class ISS_CPU final : public CPUBase, public ETISS_System
     virtual etiss_int32 systemCallDbgWrite(etiss_uint64 addr, etiss_uint8 *buffer, etiss_uint32 length);
 
     int32_t get_etiss_status(void) { return etiss_status_; }
+    std::shared_ptr<etiss::VirtualStruct> get_core_struct(void) { return etiss_core_->getStruct(); }
+    ETISS_CPU * get_etiss_cpu_struct(void) { return etiss_core_->getState(); }
 
   private:
     std::shared_ptr<etiss::CPUCore> etiss_core_{ nullptr };
