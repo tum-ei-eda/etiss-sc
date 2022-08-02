@@ -80,7 +80,8 @@ add_library(${PROJECT_NAME} SHARED
     src/tlm/base/vp.cpp
     src/tlm/base/soc.cpp
 
-    src/tlm/generic/cpu.cpp
+    src/tlm/generic/cpu_base.cpp
+    src/tlm/generic/iss_cpu.cpp
     src/tlm/generic/reset_gen.cpp
     src/tlm/generic/bus.cpp
     src/tlm/generic/mem.cpp
