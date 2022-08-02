@@ -53,7 +53,6 @@ class CPUBase : public sc_core::sc_module
 
     std::unique_ptr<tlm::tlm_initiator_socket<>> data_sock_i_{ nullptr };  ///< tlm_initiator_socket is hierarchically bound to the simple_initiator_socket of the core (given the core is not an ETISS core and has a simple_initiator_socket)
     std::unique_ptr<tlm::tlm_initiator_socket<>> instr_sock_i_{ nullptr }; ///< tlm_initiator_socket is hierarchically bound to the simple_initiator_socket of the core (given the core is not an ETISS core and has a simple_initiator_socket)
-    static size_t id;
 
     CPUBase(sc_core::sc_module_name name, CPUParams &&cpu_params);
     virtual ~CPUBase() = default;
@@ -65,10 +64,15 @@ class CPUBase : public sc_core::sc_module
 
     virtual void final() {};
 
+    int get_cpu_id() { return cpu_id_; }
+
   protected:
     // Every subclass must have its own core
     // std::shared_ptr<CORE_TYPE> core_{ nullptr }; 
     CPUParams cpu_params_{};
+
+    static int id;
+    int cpu_id_;
 };
 
 } // namespace etiss_sc

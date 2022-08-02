@@ -225,7 +225,6 @@ void etiss_sc::ISS_CPU::setup()
 
     etiss::VirtualStruct::root()->mountStruct("core" + std::to_string(CPUBase::id), etiss_core_->getStruct());
 
-    CPUBase::id++;
     cpu_params_.etiss_init_->loadIniPlugins(etiss_core_);
     cpu_params_.etiss_init_->loadIniJIT(etiss_core_);
 

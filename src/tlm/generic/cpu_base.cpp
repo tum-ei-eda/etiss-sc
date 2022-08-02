@@ -21,16 +21,17 @@
 
 #include "etiss-sc/tlm/generic/cpu_base.h"
 
-size_t etiss_sc::CPUBase::id = 0;
+int etiss_sc::CPUBase::id = 0;
 
 etiss_sc::CPUBase::CPUBase(sc_core::sc_module_name name, CPUParams &&cpu_params)
     : sc_core::sc_module(name)
     , cpu_params_{ std::move(cpu_params) }
+    , cpu_id_(CPUBase::id++)
 {}
 
 void etiss_sc::CPUBase::setupDMI(uint64_t addr)
 {
-    std::cout << "---------------------------- [Lasse] im iss cpu dmi setup: " << std::endl;
+    std::cout << "---------------------------- ERROR: in setup DMI in cpu_base.cpp " << std::endl;
 }
 
 size_t etiss_sc::CPUBase::getNumIRQs() const
