@@ -281,6 +281,11 @@ void etiss_sc::ISS_CPU::systemCallSyncTime(ETISS_CPU *cpu)
 {
     auto offset = getTimeOffset(cpu);
     updateSystemCTime(offset);
+    if (freeze_cpu_)
+    {
+        wait(wake_up_cpu_);
+        freeze_cpu_ = false;
+    }
 }
 
 etiss_int32 etiss_sc::ISS_CPU::systemCallIRead(ETISS_CPU *cpu, etiss_uint64 addr, etiss_uint32 length)
