@@ -28,11 +28,6 @@ etiss_sc::CPUBase::CPUBase(sc_core::sc_module_name name, CPUParams &&cpu_params)
     , cpu_params_{ std::move(cpu_params) }
 {}
 
-void etiss_sc::CPUBase::setupDMI(uint64_t addr)
-{
-    std::cout << "---------------------------- [Lasse] im iss cpu dmi setup: " << std::endl;
-}
-
 size_t etiss_sc::CPUBase::getNumIRQs() const
 {
     return cpu_params_.num_irqs_;
