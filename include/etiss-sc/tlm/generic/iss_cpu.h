@@ -103,10 +103,16 @@ class ISS_CPU final : public CPUBase, public ETISS_System
     std::shared_ptr<etiss::VirtualStruct> get_core_struct(void) { return etiss_core_->getStruct(); }
     ETISS_CPU * get_etiss_cpu_struct(void) { return etiss_core_->getState(); }
 
+    void freeze_cpu() { freeze_cpu_ = true; std::cout << "        +++ iss_cpu frozen" << std::endl; };
+    void wake_up_cpu() { wake_up_cpu_.notify(); std::cout << "        +++ iss_cpu woken up" << std::endl; };
+
   private:
     std::shared_ptr<etiss::CPUCore> etiss_core_{ nullptr };
     std::shared_ptr<etiss::InterruptHandler> irq_handler_{ nullptr };
     std::shared_ptr<ResetTerminatePlugin> reset_terminate_handler_{ nullptr };
+
+    sc_core::sc_event wake_up_cpu_{ "wake_up_cpu_event" };
+    bool freeze_cpu_{ false };
     
     std::forward_list<tlm::tlm_dmi> dmi_objects_{};
     uint64_t quantum_{ 0 };

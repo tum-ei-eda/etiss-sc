@@ -29,11 +29,6 @@ etiss_sc::CPUBase::CPUBase(sc_core::sc_module_name name, CPUParams &&cpu_params)
     , cpu_id_(CPUBase::id++)
 {}
 
-void etiss_sc::CPUBase::setupDMI(uint64_t addr)
-{
-    std::cout << "---------------------------- ERROR: in setup DMI in cpu_base.cpp " << std::endl;
-}
-
 size_t etiss_sc::CPUBase::getNumIRQs() const
 {
     return cpu_params_.num_irqs_;

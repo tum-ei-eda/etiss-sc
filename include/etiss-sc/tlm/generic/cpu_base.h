@@ -58,7 +58,7 @@ class CPUBase : public sc_core::sc_module
     virtual ~CPUBase() = default;
 
     virtual void setup() = 0;
-    virtual void setupDMI(uint64_t addr); // should be overloaded if CPU supports DMI
+    virtual void setupDMI(uint64_t addr) {}; // should be overloaded if CPU supports DMI
     size_t getNumIRQs() const;
     virtual void bindIRQ(size_t id, sc_core::sc_signal<bool> &irq) const = 0;
 
