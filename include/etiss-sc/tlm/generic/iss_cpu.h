@@ -23,6 +23,7 @@
 #define __ETISS_SC_TLM_GENERIC_ISS_CPU_H__
 
 #include "etiss-sc/tlm/generic/cpu_base.h"
+#include "tlm_utils/simple_initiator_socket.h"
 
 #include <string>
 #include <vector>
@@ -99,6 +100,8 @@ class ISS_CPU final : public CPUBase, public ETISS_System
     virtual etiss_int32 systemCallDbgWrite(etiss_uint64 addr, etiss_uint8 *buffer, etiss_uint32 length);
 
     int32_t get_etiss_status(void) { return etiss_status_; }
+    std::shared_ptr<etiss::VirtualStruct> get_core_struct(void) { return etiss_core_->getStruct(); }
+    ETISS_CPU * get_etiss_cpu_struct(void) { return etiss_core_->getState(); }
 
     void freeze_cpu() { freeze_cpu_ = true; std::cout << "        +++ iss_cpu frozen" << std::endl; };
     void wake_up_cpu() { wake_up_cpu_.notify(); std::cout << "        +++ iss_cpu woken up" << std::endl; };

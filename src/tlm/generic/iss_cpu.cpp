@@ -177,8 +177,8 @@ etiss_sc::ISS_CPU::ISS_CPU(sc_core::sc_module_name name, CPUParams &&cpu_params)
     dont_initialize();
     sensitive << rst_i_;
 
-    data_sock_ = std::make_unique<tlm_utils::simple_initiator_socket<CPUBase>>("data_socket");
-    instr_sock_ = std::make_unique<tlm_utils::simple_initiator_socket<CPUBase>>("instr_socket");
+    data_sock_i_ = std::make_unique<tlm_utils::simple_initiator_socket<CPUBase>>("data_socket");
+    instr_sock_i_ = std::make_unique<tlm_utils::simple_initiator_socket<CPUBase>>("instr_socket");
 
     this->iread = system_call_iread;
     this->iwrite = system_call_iwrite;
@@ -225,7 +225,6 @@ void etiss_sc::ISS_CPU::setup()
 
     etiss::VirtualStruct::root()->mountStruct("core" + std::to_string(CPUBase::id), etiss_core_->getStruct());
 
-    CPUBase::id++;
     cpu_params_.etiss_init_->loadIniPlugins(etiss_core_);
     cpu_params_.etiss_init_->loadIniJIT(etiss_core_);
 
@@ -263,7 +262,7 @@ void etiss_sc::ISS_CPU::setupDMI(uint64_t addr)
     std::cout << "---------------------------- [Lasse] im iss cpu dmi setup: " << std::endl;
     dmi_objects_.push_front(tlm::tlm_dmi());
     configurePayload(addr, tlm::TLM_READ_COMMAND);
-    if (!((*data_sock_)->get_direct_mem_ptr(payload_, dmi_objects_.front()) && dmi_objects_.front().get_dmi_ptr()))
+    if (!((*data_sock_i_)->get_direct_mem_ptr(payload_, dmi_objects_.front()) && dmi_objects_.front().get_dmi_ptr()))
     {
         dmi_objects_.pop_front();
         XREPORT_FATAL("DMI not successful in CPU::setupDMI()");
@@ -297,7 +296,7 @@ etiss_int32 etiss_sc::ISS_CPU::systemCallIRead(ETISS_CPU *cpu, etiss_uint64 addr
     }
 
     std::vector<uint8_t> buffer(length);
-    transaction(cpu, addr, buffer.data(), length, tlm::TLM_READ_COMMAND, *instr_sock_);
+    transaction(cpu, addr, buffer.data(), length, tlm::TLM_READ_COMMAND, *instr_sock_i_);
     auto response = payload_.get_response_status();
     if (response != tlm::TLM_OK_RESPONSE)
     {
@@ -315,7 +314,7 @@ etiss_int32 etiss_sc::ISS_CPU::systemCallIWrite(ETISS_CPU *cpu, etiss_uint64 add
         return return_val;
     }
 
-    transaction(cpu, addr, buffer, length, tlm::TLM_WRITE_COMMAND, *instr_sock_);
+    transaction(cpu, addr, buffer, length, tlm::TLM_WRITE_COMMAND, *instr_sock_i_);
     auto response = payload_.get_response_status();
     if (response != tlm::TLM_OK_RESPONSE)
     {
@@ -332,7 +331,7 @@ etiss_int32 etiss_sc::ISS_CPU::systemCallDRead(ETISS_CPU *cpu, etiss_uint64 addr
         return return_val;
     }
 
-    transaction(cpu, addr, buffer, length, tlm::TLM_READ_COMMAND, *data_sock_);
+    transaction(cpu, addr, buffer, length, tlm::TLM_READ_COMMAND, *data_sock_i_);
     auto response = payload_.get_response_status();
     if (response != tlm::TLM_OK_RESPONSE)
     {
@@ -350,7 +349,7 @@ etiss_int32 etiss_sc::ISS_CPU::systemCallDWrite(ETISS_CPU *cpu, etiss_uint64 add
         return return_val;
     }
 
-    transaction(cpu, addr, buffer, length, tlm::TLM_WRITE_COMMAND, *data_sock_);
+    transaction(cpu, addr, buffer, length, tlm::TLM_WRITE_COMMAND, *data_sock_i_);
     auto response = payload_.get_response_status();
     if (response != tlm::TLM_OK_RESPONSE)
     {
@@ -361,7 +360,7 @@ etiss_int32 etiss_sc::ISS_CPU::systemCallDWrite(ETISS_CPU *cpu, etiss_uint64 add
 
 etiss_int32 etiss_sc::ISS_CPU::systemCallDbgRead(etiss_uint64 addr, etiss_uint8 *buffer, etiss_uint32 length)
 {
-    auto response_len = dbgTransaction(addr, buffer, length, tlm::TLM_READ_COMMAND, *instr_sock_);
+    auto response_len = dbgTransaction(addr, buffer, length, tlm::TLM_READ_COMMAND, *instr_sock_i_);
     if (response_len != length)
     {
         return etiss::RETURNCODE::IBUS_READ_ERROR;
@@ -372,13 +371,15 @@ etiss_int32 etiss_sc::ISS_CPU::systemCallDbgRead(etiss_uint64 addr, etiss_uint8 
 
 etiss_int32 etiss_sc::ISS_CPU::systemCallDbgWrite(etiss_uint64 addr, etiss_uint8 *buffer, etiss_uint32 length)
 {
-    auto response_len = dbgTransaction(addr, buffer, length, tlm::TLM_WRITE_COMMAND, *instr_sock_);
+    auto response_len = dbgTransaction(addr, buffer, length, tlm::TLM_WRITE_COMMAND, *instr_sock_i_);
     if (response_len != length)
     {
         return etiss::RETURNCODE::IBUS_WRITE_ERROR;
     }
     return etiss::RETURNCODE::NOERROR;
 }
+
+/************************ reset and execute logic ***********************/
 
 void etiss_sc::ISS_CPU::resetMethod()
 {
@@ -405,6 +406,8 @@ void etiss_sc::ISS_CPU::execute()
 
     sc_core::sc_stop();
 }
+
+/***************************** transactions *****************************/
 
 void etiss_sc::ISS_CPU::transaction(ETISS_CPU *cpu, uint64_t addr, uint8_t *buffer, uint32_t length, tlm::tlm_command cmd,
                                 tlm::tlm_initiator_socket<> &socket)
