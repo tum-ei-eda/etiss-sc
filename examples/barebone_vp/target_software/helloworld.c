@@ -36,6 +36,6 @@ void custom_print_string(volatile char *logger_addr, const char *string)
 
 int main()
 {
-    custom_print_string((char *)ETISS_LOGGER, "Hello World! From ETISS Logger Plugin!\n");
+    custom_print_string((char *)ETISSVP_LOGGER, "Hello World! From ETISS Logger Plugin!\n");
     return 0;
 }
