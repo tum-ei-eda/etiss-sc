@@ -34,7 +34,7 @@
 #include "scc/tlm_target_bfs.h"
 
 #include "etiss-sc/utils/xreport.hpp"
-#include "etiss-sc/tlm/generic/cpu.h"
+#include "etiss-sc/tlm/generic/iss_cpu.h"
 #include "etiss-sc/tlm/generic/bus.h"
 #include "etiss-sc/tlm/generic/mem.h"
 
@@ -62,7 +62,7 @@ class SoC : public sc_core::sc_module
     SoC(sc_core::sc_module_name, SoCParams &&);
     virtual ~SoC() = default;
 
-    const CPU &getCPU(std::string) const;
+    const CPUBase &getCPU(std::string) const;
     const Mem *getMem(std::string) const;
     sc_core::sc_signal<bool> *getIRQ(std::string, size_t);
     virtual void setup();
@@ -123,16 +123,16 @@ class SoC : public sc_core::sc_module
 
   protected:
     SoCParams soc_params_{};
-    std::map<std::string, std::unique_ptr<CPU>> cpus_{};
+    std::map<std::string, std::unique_ptr<CPUBase>> cpus_{};
     std::map<std::string, std::unique_ptr<Bus>> buses_{};
     std::map<std::string, std::unique_ptr<Mem>> mems_{};
     std::map<std::string, std::unique_ptr<scc::tlm_target_bfs_base<etiss_sc::SoC>>> pers_{};
-    std::map<const CPU *, std::vector<sc_core::sc_signal<bool>>> irqs_{};
+    std::map<const CPUBase *, std::vector<sc_core::sc_signal<bool>>> irqs_{};
 
     std::vector<std::unique_ptr<ELFIO::elfio>> elf_readers_{};
 
     virtual void addBus(std::string name, BusParams &&bus_params);
-    virtual const CPU *addCPU(CPUFactory *cpu_factory, std::string bus_name);
+    virtual const CPUBase *addCPU(CPUFactory *cpu_factory, std::string bus_name);
     virtual const Mem *addMem(std::string name, MemParams &&mem_params, std::string bus_name);
     void burnMem(Mem *);
 
