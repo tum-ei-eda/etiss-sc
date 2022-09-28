@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 Chair of EDA, Technical University of Munich
+ * Copyright 2022 Chair of EDA, Technical University of Munich
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,59 +15,62 @@
  */
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-/// @file cpu.cpp
-/// @date 2019-03-10
+/// @file iss_cpu.cpp
+/// @date 2022-05-30
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
-#include "etiss-sc/tlm/generic/cpu.h"
+#include "etiss-sc/tlm/generic/iss_cpu.h"
 #include "etiss/fault/Stressor.h"
 #include "etiss-sc/utils/plugins.h"
 
-#define ID_ETISS_SC_CPU "etiss-sc: CPU"
+#define ID_ETISS_SC_ISS_CPU "etiss-sc: ISS_CPU"
 
 void system_call_syncTime(void *handle, ETISS_CPU *cpu)
 {
-    static_cast<etiss_sc::CPU *>(handle)->systemCallSyncTime(cpu);
+    static_cast<etiss_sc::ISS_CPU *>(handle)->systemCallSyncTime(cpu);
 }
 
 etiss_int32 system_call_iread(void *handle, ETISS_CPU *cpu, etiss_uint64 addr, etiss_uint32 length)
 {
-    return static_cast<etiss_sc::CPU *>(handle)->systemCallIRead(cpu, addr, length);
+    return static_cast<etiss_sc::ISS_CPU *>(handle)->systemCallIRead(cpu, addr, length);
 }
 
-etiss_int32 system_call_iwrite(void *handle, ETISS_CPU *cpu, etiss_uint64 addr, etiss_uint8 *buffer,
-                               etiss_uint32 length)
+etiss_int32 system_call_iwrite(void *handle, ETISS_CPU *cpu, etiss_uint64 addr, etiss_uint8 *buffer, etiss_uint32 length)
 {
-    return static_cast<etiss_sc::CPU *>(handle)->systemCallIWrite(cpu, addr, buffer, length);
+    return static_cast<etiss_sc::ISS_CPU *>(handle)->systemCallIWrite(cpu, addr, buffer, length);
 }
 
 etiss_int32 system_call_dread(void *handle, ETISS_CPU *cpu, etiss_uint64 addr, etiss_uint8 *buffer, etiss_uint32 length)
 {
-    return static_cast<etiss_sc::CPU *>(handle)->systemCallDRead(cpu, addr, buffer, length);
+    return static_cast<etiss_sc::ISS_CPU *>(handle)->systemCallDRead(cpu, addr, buffer, length);
 }
 
-etiss_int32 system_call_dwrite(void *handle, ETISS_CPU *cpu, etiss_uint64 addr, etiss_uint8 *buffer,
-                               etiss_uint32 length)
+etiss_int32 system_call_dwrite(void *handle, ETISS_CPU *cpu, etiss_uint64 addr, etiss_uint8 *buffer, etiss_uint32 length)
 {
-    return static_cast<etiss_sc::CPU *>(handle)->systemCallDWrite(cpu, addr, buffer, length);
+    return static_cast<etiss_sc::ISS_CPU *>(handle)->systemCallDWrite(cpu, addr, buffer, length);
 }
 
 etiss_int32 system_call_dbg_read(void *handle, etiss_uint64 addr, etiss_uint8 *buffer, etiss_uint32 length)
 {
-    return static_cast<etiss_sc::CPU *>(handle)->systemCallDbgRead(addr, buffer, length);
+    return static_cast<etiss_sc::ISS_CPU *>(handle)->systemCallDbgRead(addr, buffer, length);
 }
 
 etiss_int32 system_call_dbg_write(void *handle, etiss_uint64 addr, etiss_uint8 *buffer, etiss_uint32 length)
 {
-    return static_cast<etiss_sc::CPU *>(handle)->systemCallDbgWrite(addr, buffer, length);
+    return static_cast<etiss_sc::ISS_CPU *>(handle)->systemCallDbgWrite(addr, buffer, length);
 }
 
-etiss_sc::CPU::IRQ::IRQ(sc_core::sc_module_name name, size_t id, etiss::InterruptHandler *irq_handler)
+
+/************************************************************************
+ * ISS_CPU::IRQ                                                         *
+ ************************************************************************/
+
+etiss_sc::ISS_CPU::IRQ::IRQ(sc_core::sc_module_name name, size_t id, etiss::InterruptHandler *irq_handler)
     : sc_module(name), id_{ id }, irq_handler_{ irq_handler }
 {
     if (!irq_handler_)
     {
-        SC_REPORT_FATAL(ID_ETISS_SC_CPU, "invalid irq_handler passed in CPU::IRQ::IRQ()");
+        SC_REPORT_FATAL(ID_ETISS_SC_ISS_CPU, "invalid irq_handler passed in ISS_CPU::IRQ::IRQ()");
     }
 
     SC_METHOD(execute);
@@ -75,9 +78,8 @@ etiss_sc::CPU::IRQ::IRQ(sc_core::sc_module_name name, size_t id, etiss::Interrup
     dont_initialize();
 }
 
-void etiss_sc::CPU::IRQ::execute()
+void etiss_sc::ISS_CPU::IRQ::execute()
 {
-
     if (irq_i_.read())
     {
         irq_handler_->setLine(id_, true, static_cast<etiss::uint64>(sc_core::sc_time_stamp().to_seconds() * 1e12));
@@ -88,7 +90,12 @@ void etiss_sc::CPU::IRQ::execute()
     }
 }
 
-etiss_int32 etiss_sc::CPU::ResetTerminatePlugin::execute()
+
+/************************************************************************
+ * ISS_CPU::ResetTerminatePlugin                                                                    *
+ ************************************************************************/
+
+etiss_int32 etiss_sc::ISS_CPU::ResetTerminatePlugin::execute()
 {
     if (terminate_)
     {
@@ -118,7 +125,7 @@ etiss_int32 etiss_sc::CPU::ResetTerminatePlugin::execute()
     }
 }
 
-void etiss_sc::CPU::ResetTerminatePlugin::reset(bool value)
+void etiss_sc::ISS_CPU::ResetTerminatePlugin::reset(bool value)
 {
     switch (state_)
     {
@@ -147,20 +154,22 @@ void etiss_sc::CPU::ResetTerminatePlugin::reset(bool value)
         }
         break;
     default:
-        SC_REPORT_FATAL(ID_ETISS_SC_CPU, "undefined state in CPU::ResetTerminatePlugin::reset()");
+        SC_REPORT_FATAL(ID_ETISS_SC_ISS_CPU, "undefined state in ISS_CPU::ResetTerminatePlugin::reset()");
     }
 }
 
-void etiss_sc::CPU::ResetTerminatePlugin::terminate()
+void etiss_sc::ISS_CPU::ResetTerminatePlugin::terminate()
 {
     terminate_ = true;
 }
 
-size_t etiss_sc::CPU::id{ 0 };
 
-etiss_sc::CPU::CPU(sc_core::sc_module_name name, CPUParams &&cpu_params)
-    : sc_core::sc_module(name)
-    , cpu_params_{ std::move(cpu_params) }
+/************************************************************************
+ * ISS CPU                                                              *
+ ************************************************************************/
+
+etiss_sc::ISS_CPU::ISS_CPU(sc_core::sc_module_name name, CPUParams &&cpu_params)
+    : CPUBase(name, std::move(cpu_params))
     , quantum_{ etiss::cfg().get<uint64_t>("etiss.cpu_quantum_ps", 0) }
 {
     SC_THREAD(execute);
@@ -168,8 +177,8 @@ etiss_sc::CPU::CPU(sc_core::sc_module_name name, CPUParams &&cpu_params)
     dont_initialize();
     sensitive << rst_i_;
 
-    data_sock_i_ = std::make_unique<tlm_utils::simple_initiator_socket<CPU>>("data_socket");
-    instr_sock_i_ = std::make_unique<tlm_utils::simple_initiator_socket<CPU>>("instr_socket");
+    data_sock_i_ = std::make_unique<tlm_utils::simple_initiator_socket<CPUBase>>("data_socket");
+    instr_sock_i_ = std::make_unique<tlm_utils::simple_initiator_socket<CPUBase>>("instr_socket");
 
     this->iread = system_call_iread;
     this->iwrite = system_call_iwrite;
@@ -181,7 +190,7 @@ etiss_sc::CPU::CPU(sc_core::sc_module_name name, CPUParams &&cpu_params)
     handle = this;
 }
 
-etiss_sc::CPU::~CPU()
+etiss_sc::ISS_CPU::~ISS_CPU()
 {
     auto cpu_time = sc_core::sc_time{ static_cast<double>(etiss_core_->getState()->cpuTime_ps), sc_core::SC_PS };
     if (status_ == CPUStatus::ACTIVE)
@@ -195,12 +204,12 @@ etiss_sc::CPU::~CPU()
 
             if (status_ == CPUStatus::ACTIVE)
             {
-                XREPORT_FATAL("CPU stuck and not exiting properly in CPU::~CPU()");
+                XREPORT_FATAL("CPU stuck and not exiting properly in ISS_CPU::~ISS_CPU()");
             }
         }
         else
         {
-            XREPORT_FATAL("CPU stuck and not exited properly in CPU::~CPU()");
+            XREPORT_FATAL("CPU stuck and not exited properly in ISS_CPU::~ISS_CPU()");
         }
     }
 
@@ -208,18 +217,14 @@ etiss_sc::CPU::~CPU()
     etiss_core_->removePlugin(reset_terminate_handler_);
 }
 
-void etiss_sc::CPU::setup()
+void etiss_sc::ISS_CPU::setup()
 {
-    etiss_core_ =
-        etiss::CPUCore::create(etiss::cfg().get<std::string>("arch.cpu", ""), "core" + std::to_string(CPU::id));
+    etiss_core_ = etiss::CPUCore::create(etiss::cfg().get<std::string>("arch.cpu", ""), "core" + std::to_string(CPUBase::id));
 
-    if (!etiss_core_)
-    {
-        XREPORT_FATAL("failed to create ETISS-CPUCore in CPU::setup()");
-    }
-    etiss::VirtualStruct::root()->mountStruct("core" + std::to_string(CPU::id), etiss_core_->getStruct());
+    if (!etiss_core_) XREPORT_FATAL("failed to create ETISS-CPUCore in ISS_CPU::setup()");
 
-    CPU::id++;
+    etiss::VirtualStruct::root()->mountStruct("core" + std::to_string(CPUBase::id), etiss_core_->getStruct());
+
     cpu_params_.etiss_init_->loadIniPlugins(etiss_core_);
     cpu_params_.etiss_init_->loadIniJIT(etiss_core_);
 
@@ -252,8 +257,9 @@ void etiss_sc::CPU::setup()
     etiss_core_->setTimer(etiss::cfg().get<bool>("etiss.timer", false));
 }
 
-void etiss_sc::CPU::setupDMI(uint64_t addr)
+void etiss_sc::ISS_CPU::setupDMI(uint64_t addr)
 {
+    std::cout << "---------------------------- [Lasse] im iss cpu dmi setup: " << std::endl;
     dmi_objects_.push_front(tlm::tlm_dmi());
     configurePayload(addr, tlm::TLM_READ_COMMAND);
     if (!((*data_sock_i_)->get_direct_mem_ptr(payload_, dmi_objects_.front()) && dmi_objects_.front().get_dmi_ptr()))
@@ -263,28 +269,25 @@ void etiss_sc::CPU::setupDMI(uint64_t addr)
     }
 }
 
-size_t etiss_sc::CPU::getNumIRQs() const
+void etiss_sc::ISS_CPU::bindIRQ(size_t id, sc_core::sc_signal<bool> &irq) const
 {
-    return cpu_params_.num_irqs_;
-}
-
-void etiss_sc::CPU::bindIRQ(size_t id, sc_core::sc_signal<bool> &irq) const
-{
-    if (id >= irq_i_.size())
-    {
-        XREPORT_FATAL("not enough interrupts in CPU::bindIRQ()");
-    }
+    if (id >= irq_i_.size()) XREPORT_FATAL("not enough interrupts in ISS_CPU::bindIRQ()");
 
     irq_i_[id]->irq_i_.bind(irq);
 }
 
-void etiss_sc::CPU::systemCallSyncTime(ETISS_CPU *cpu)
+void etiss_sc::ISS_CPU::systemCallSyncTime(ETISS_CPU *cpu)
 {
     auto offset = getTimeOffset(cpu);
     updateSystemCTime(offset);
+    if (freeze_cpu_)
+    {
+        wait(wake_up_cpu_);
+        freeze_cpu_ = false;
+    }
 }
 
-etiss_int32 etiss_sc::CPU::systemCallIRead(ETISS_CPU *cpu, etiss_uint64 addr, etiss_uint32 length)
+etiss_int32 etiss_sc::ISS_CPU::systemCallIRead(ETISS_CPU *cpu, etiss_uint64 addr, etiss_uint32 length)
 {
     auto return_val = reset_terminate_handler_->execute();
     if (return_val != etiss::RETURNCODE::NOERROR)
@@ -303,7 +306,7 @@ etiss_int32 etiss_sc::CPU::systemCallIRead(ETISS_CPU *cpu, etiss_uint64 addr, et
     return etiss::RETURNCODE::NOERROR;
 }
 
-etiss_int32 etiss_sc::CPU::systemCallIWrite(ETISS_CPU *cpu, etiss_uint64 addr, etiss_uint8 *buffer, etiss_uint32 length)
+etiss_int32 etiss_sc::ISS_CPU::systemCallIWrite(ETISS_CPU *cpu, etiss_uint64 addr, etiss_uint8 *buffer, etiss_uint32 length)
 {
     auto return_val = reset_terminate_handler_->execute();
     if (return_val != etiss::RETURNCODE::NOERROR)
@@ -320,7 +323,7 @@ etiss_int32 etiss_sc::CPU::systemCallIWrite(ETISS_CPU *cpu, etiss_uint64 addr, e
     return etiss::RETURNCODE::NOERROR;
 }
 
-etiss_int32 etiss_sc::CPU::systemCallDRead(ETISS_CPU *cpu, etiss_uint64 addr, etiss_uint8 *buffer, etiss_uint32 length)
+etiss_int32 etiss_sc::ISS_CPU::systemCallDRead(ETISS_CPU *cpu, etiss_uint64 addr, etiss_uint8 *buffer, etiss_uint32 length)
 {
     auto return_val = reset_terminate_handler_->execute();
     if (return_val != etiss::RETURNCODE::NOERROR)
@@ -338,7 +341,7 @@ etiss_int32 etiss_sc::CPU::systemCallDRead(ETISS_CPU *cpu, etiss_uint64 addr, et
     return etiss::RETURNCODE::NOERROR;
 }
 
-etiss_int32 etiss_sc::CPU::systemCallDWrite(ETISS_CPU *cpu, etiss_uint64 addr, etiss_uint8 *buffer, etiss_uint32 length)
+etiss_int32 etiss_sc::ISS_CPU::systemCallDWrite(ETISS_CPU *cpu, etiss_uint64 addr, etiss_uint8 *buffer, etiss_uint32 length)
 {
     auto return_val = reset_terminate_handler_->execute();
     if (return_val != etiss::RETURNCODE::NOERROR)
@@ -355,7 +358,7 @@ etiss_int32 etiss_sc::CPU::systemCallDWrite(ETISS_CPU *cpu, etiss_uint64 addr, e
     return etiss::RETURNCODE::NOERROR;
 }
 
-etiss_int32 etiss_sc::CPU::systemCallDbgRead(etiss_uint64 addr, etiss_uint8 *buffer, etiss_uint32 length)
+etiss_int32 etiss_sc::ISS_CPU::systemCallDbgRead(etiss_uint64 addr, etiss_uint8 *buffer, etiss_uint32 length)
 {
     auto response_len = dbgTransaction(addr, buffer, length, tlm::TLM_READ_COMMAND, *instr_sock_i_);
     if (response_len != length)
@@ -366,7 +369,7 @@ etiss_int32 etiss_sc::CPU::systemCallDbgRead(etiss_uint64 addr, etiss_uint8 *buf
     return etiss::RETURNCODE::NOERROR;
 }
 
-etiss_int32 etiss_sc::CPU::systemCallDbgWrite(etiss_uint64 addr, etiss_uint8 *buffer, etiss_uint32 length)
+etiss_int32 etiss_sc::ISS_CPU::systemCallDbgWrite(etiss_uint64 addr, etiss_uint8 *buffer, etiss_uint32 length)
 {
     auto response_len = dbgTransaction(addr, buffer, length, tlm::TLM_WRITE_COMMAND, *instr_sock_i_);
     if (response_len != length)
@@ -376,12 +379,14 @@ etiss_int32 etiss_sc::CPU::systemCallDbgWrite(etiss_uint64 addr, etiss_uint8 *bu
     return etiss::RETURNCODE::NOERROR;
 }
 
-void etiss_sc::CPU::resetMethod()
+/************************ reset and execute logic ***********************/
+
+void etiss_sc::ISS_CPU::resetMethod()
 {
     reset_terminate_handler_->reset(rst_i_.read());
 }
 
-void etiss_sc::CPU::execute()
+void etiss_sc::ISS_CPU::execute()
 {
     auto etiss_status_ = etiss_core_->execute(*this);
 
@@ -396,14 +401,16 @@ void etiss_sc::CPU::execute()
     else if (etiss_status_ < 0)
     {
         std::cout << std::hex << etiss_status_ << std::dec << std::endl;
-        XREPORT("execute from CPUCore not done properly in CPU::execute()");
+        XREPORT("execute from CPUCore not done properly in ISS_CPU::execute()");
     }
 
     sc_core::sc_stop();
 }
 
-void etiss_sc::CPU::transaction(ETISS_CPU *cpu, uint64_t addr, uint8_t *buffer, uint32_t length, tlm::tlm_command cmd,
-                                tlm_utils::simple_initiator_socket<CPU> &socket)
+/***************************** transactions *****************************/
+
+void etiss_sc::ISS_CPU::transaction(ETISS_CPU *cpu, uint64_t addr, uint8_t *buffer, uint32_t length, tlm::tlm_command cmd,
+                                tlm::tlm_initiator_socket<> &socket)
 {
     auto time_offset = getTimeOffset(cpu);
     updateSystemCTime(time_offset);
@@ -455,8 +462,8 @@ void etiss_sc::CPU::transaction(ETISS_CPU *cpu, uint64_t addr, uint8_t *buffer, 
     updateSystemCTime(time_offset);
 }
 
-uint32_t etiss_sc::CPU::dbgTransaction(uint64_t addr, uint8_t *buffer, uint32_t length, tlm::tlm_command cmd,
-                                       tlm_utils::simple_initiator_socket<CPU> &socket)
+uint32_t etiss_sc::ISS_CPU::dbgTransaction(uint64_t addr, uint8_t *buffer, uint32_t length, tlm::tlm_command cmd,
+                                           tlm::tlm_initiator_socket<> &socket)
 {
     for (auto d : dmi_objects_)
     {
@@ -484,7 +491,7 @@ uint32_t etiss_sc::CPU::dbgTransaction(uint64_t addr, uint8_t *buffer, uint32_t 
     return socket->transport_dbg(payload_);
 }
 
-void etiss_sc::CPU::dmiAccess(uint8_t *dst, uint8_t *src, unsigned len, bool flip_endianness)
+void etiss_sc::ISS_CPU::dmiAccess(uint8_t *dst, uint8_t *src, unsigned len, bool flip_endianness)
 {
     for (size_t i = 0; i < len; ++i)
     {
@@ -497,17 +504,17 @@ void etiss_sc::CPU::dmiAccess(uint8_t *dst, uint8_t *src, unsigned len, bool fli
     }
 }
 
-sc_core::sc_time etiss_sc::CPU::getTimeOffset(ETISS_CPU *cpu)
+sc_core::sc_time etiss_sc::ISS_CPU::getTimeOffset(ETISS_CPU *cpu)
 {
     return (sc_core::sc_time(cpu->cpuTime_ps, sc_core::SC_PS) - sc_core::sc_time_stamp());
 }
 
-void etiss_sc::CPU::updateCPUTime(ETISS_CPU *cpu, const sc_core::sc_time &time_offset)
+void etiss_sc::ISS_CPU::updateCPUTime(ETISS_CPU *cpu, const sc_core::sc_time &time_offset)
 {
     cpu->cpuTime_ps = (sc_core::sc_time_stamp().to_seconds() + time_offset.to_seconds()) * 1e12;
 }
 
-void etiss_sc::CPU::updateSystemCTime(sc_core::sc_time &time_offset)
+void etiss_sc::ISS_CPU::updateSystemCTime(sc_core::sc_time &time_offset)
 {
     if (sc_core::sc_time_stamp() == sc_core::SC_ZERO_TIME ||
         time_offset > sc_core::sc_time{ static_cast<double>(quantum_), sc_core::SC_PS })
@@ -517,7 +524,7 @@ void etiss_sc::CPU::updateSystemCTime(sc_core::sc_time &time_offset)
     }
 }
 
-void etiss_sc::CPU::configurePayload(uint64_t addr, tlm::tlm_command cmd, uint8_t *buffer, uint32_t length)
+void etiss_sc::ISS_CPU::configurePayload(uint64_t addr, tlm::tlm_command cmd, uint8_t *buffer, uint32_t length)
 {
     payload_.set_command(cmd);
     payload_.set_address(addr);
@@ -529,8 +536,13 @@ void etiss_sc::CPU::configurePayload(uint64_t addr, tlm::tlm_command cmd, uint8_
     payload_.set_response_status(tlm::TLM_INCOMPLETE_RESPONSE);
 }
 
+
+/************************************************************************
+ * CPU Factory                                                          *
+ ************************************************************************/
+
 etiss_sc::CPUFactory::CPUFactory(const etiss_sc::Config &cfg, etiss::Initializer *etiss_init)
-    : etiss_sc::Factory<CPU>(cfg, etiss_init)
+    : etiss_sc::Factory<ISS_CPU>(cfg, etiss_init)
 {
 }
 
@@ -545,5 +557,5 @@ void etiss_sc::CPUFactory::initParams()
 
 void etiss_sc::CPUFactory::generate(sc_core::sc_module_name name)
 {
-    genHelper<CPU, CPUParams>(name, std::move(cpu_params_));
+    genHelper<ISS_CPU, CPUParams>(name, std::move(cpu_params_));
 }
