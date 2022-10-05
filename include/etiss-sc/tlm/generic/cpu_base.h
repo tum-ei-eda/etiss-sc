@@ -51,24 +51,30 @@ class CPUBase : public sc_core::sc_module
     sc_core::sc_in<bool> rst_i_{ "reset_in" };
     sc_core::sc_in<bool> clk_i_{ "clock_in" };
 
-    std::unique_ptr<tlm::tlm_initiator_socket<>> data_sock_i_{ nullptr };  ///< tlm_initiator_socket is hierarchically bound to the simple_initiator_socket of the core (given the core is not an ETISS core and has a simple_initiator_socket)
-    std::unique_ptr<tlm::tlm_initiator_socket<>> instr_sock_i_{ nullptr }; ///< tlm_initiator_socket is hierarchically bound to the simple_initiator_socket of the core (given the core is not an ETISS core and has a simple_initiator_socket)
+    std::unique_ptr<tlm::tlm_initiator_socket<>> data_sock_i_{
+        nullptr
+    }; ///< tlm_initiator_socket is hierarchically bound to the simple_initiator_socket of the core (given the core is
+       ///< not an ETISS core and has a simple_initiator_socket)
+    std::unique_ptr<tlm::tlm_initiator_socket<>> instr_sock_i_{
+        nullptr
+    }; ///< tlm_initiator_socket is hierarchically bound to the simple_initiator_socket of the core (given the core is
+       ///< not an ETISS core and has a simple_initiator_socket)
 
     CPUBase(sc_core::sc_module_name name, CPUParams &&cpu_params);
     virtual ~CPUBase() = default;
 
     virtual void setup() = 0;
-    virtual void setupDMI(uint64_t addr) {}; // should be overloaded if CPU supports DMI
+    virtual void setupDMI(uint64_t addr){}; // should be overloaded if CPU supports DMI
     size_t getNumIRQs() const;
     virtual void bindIRQ(size_t id, sc_core::sc_signal<bool> &irq) const = 0;
 
-    virtual void final() {};
+    virtual void final(){};
 
     int get_cpu_id() { return cpu_id_; }
 
   protected:
     // Every subclass must have its own core
-    // std::shared_ptr<CORE_TYPE> core_{ nullptr }; 
+    // std::shared_ptr<CORE_TYPE> core_{ nullptr };
     CPUParams cpu_params_{};
 
     static int id;
