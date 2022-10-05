@@ -34,7 +34,7 @@
 #include "scc/tlm_target_bfs.h"
 
 #include "etiss-sc/utils/xreport.hpp"
-#include "etiss-sc/tlm/generic/iss_cpu.h"
+#include "etiss-sc/tlm/generic/cpu.h"
 #include "etiss-sc/tlm/generic/bus.h"
 #include "etiss-sc/tlm/generic/mem.h"
 

@@ -15,12 +15,12 @@
  */
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-/// @file iss_cpu.h
+/// @file cpu.h
 /// @date 2022-05-30
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
-#ifndef __ETISS_SC_TLM_GENERIC_ISS_CPU_H__
-#define __ETISS_SC_TLM_GENERIC_ISS_CPU_H__
+#ifndef __ETISS_SC_TLM_GENERIC_CPU_H__
+#define __ETISS_SC_TLM_GENERIC_CPU_H__
 
 #include "etiss-sc/tlm/generic/cpu_base.h"
 #include "tlm_utils/simple_initiator_socket.h"
@@ -28,14 +28,13 @@
 #include <string>
 #include <vector>
 
-
 namespace etiss_sc
 {
 
-// Note: ISS_CPU is a systemc CPU with an etiss::CPUCore and ETISS_CPU is a struct from etiss
-class ISS_CPU final : public CPUBase, public ETISS_System
+// Note: CPU is a systemc CPU with an etiss::CPUCore and ETISS_CPU is a struct from etiss
+class CPU final : public CPUBase, public ETISS_System
 {
-    SC_HAS_PROCESS(ISS_CPU);
+    SC_HAS_PROCESS(CPU);
 
   protected:
     class IRQ : public sc_core::sc_module
@@ -79,13 +78,12 @@ class ISS_CPU final : public CPUBase, public ETISS_System
         bool reset_{ false };
         bool terminate_{ false };
     };
-    
 
   public:
     std::vector<std::unique_ptr<IRQ>> irq_i_{}; ///< Interrupt vector
 
-    ISS_CPU(sc_core::sc_module_name name, CPUParams &&cpu_params);
-    virtual ~ISS_CPU();
+    CPU(sc_core::sc_module_name name, CPUParams &&cpu_params);
+    virtual ~CPU();
 
     void setup();
     void setupDMI(uint64_t addr) override;
@@ -101,10 +99,18 @@ class ISS_CPU final : public CPUBase, public ETISS_System
 
     int32_t get_etiss_status(void) { return etiss_status_; }
     std::shared_ptr<etiss::VirtualStruct> get_core_struct(void) { return etiss_core_->getStruct(); }
-    ETISS_CPU * get_etiss_cpu_struct(void) { return etiss_core_->getState(); }
+    ETISS_CPU *get_etiss_cpu_struct(void) { return etiss_core_->getState(); }
 
-    void freeze_cpu() { freeze_cpu_ = true; std::cout << "        +++ iss_cpu frozen" << std::endl; };
-    void wake_up_cpu() { wake_up_cpu_.notify(); std::cout << "        +++ iss_cpu woken up" << std::endl; };
+    void freeze_cpu()
+    {
+        freeze_cpu_ = true;
+        std::cout << "        +++ iss_cpu frozen" << std::endl;
+    };
+    void wake_up_cpu()
+    {
+        wake_up_cpu_.notify();
+        std::cout << "        +++ iss_cpu woken up" << std::endl;
+    };
 
   private:
     std::shared_ptr<etiss::CPUCore> etiss_core_{ nullptr };
@@ -113,11 +119,11 @@ class ISS_CPU final : public CPUBase, public ETISS_System
 
     sc_core::sc_event wake_up_cpu_{ "wake_up_cpu_event" };
     bool freeze_cpu_{ false };
-    
+
     std::forward_list<tlm::tlm_dmi> dmi_objects_{};
     uint64_t quantum_{ 0 };
     tlm::tlm_generic_payload payload_{};
-    
+
     enum class CPUStatus
     {
         ACTIVE,
@@ -129,24 +135,26 @@ class ISS_CPU final : public CPUBase, public ETISS_System
     virtual void resetMethod();
     virtual void execute();
 
-    void transaction(ETISS_CPU *cpu, uint64_t addr, uint8_t *buffer, uint32_t length, tlm::tlm_command cmd, tlm::tlm_initiator_socket<> &socket);
-    virtual uint32_t dbgTransaction( uint64_t addr, uint8_t *buffer, uint32_t length, tlm::tlm_command cmd, tlm::tlm_initiator_socket<> &socket);
+    void transaction(ETISS_CPU *cpu, uint64_t addr, uint8_t *buffer, uint32_t length, tlm::tlm_command cmd,
+                     tlm::tlm_initiator_socket<> &socket);
+    virtual uint32_t dbgTransaction(uint64_t addr, uint8_t *buffer, uint32_t length, tlm::tlm_command cmd,
+                                    tlm::tlm_initiator_socket<> &socket);
     virtual void dmiAccess(uint8_t *dst, uint8_t *src, unsigned len, bool flip_endianness = false);
-    
+
     sc_core::sc_time getTimeOffset(ETISS_CPU *cpu);
     void updateCPUTime(ETISS_CPU *cpu, const sc_core::sc_time &time_offset);
     void updateSystemCTime(sc_core::sc_time &time_offset);
     void configurePayload(uint64_t addr, tlm::tlm_command cmd, uint8_t *buffer = nullptr, uint32_t length = 0);
 };
 
-class CPUFactory : public Factory<ISS_CPU>
+class CPUFactory : public Factory<CPU>
 {
   public:
     explicit CPUFactory(const etiss_sc::Config &cfg, etiss::Initializer *etiss_init);
     std::string get_name() { return cpu_params_.name_; }
 
   protected:
-    using Factory<ISS_CPU>::genHelper;
+    using Factory<CPU>::genHelper;
     CPUParams cpu_params_{};
 
     void initParams() override;
@@ -155,4 +163,4 @@ class CPUFactory : public Factory<ISS_CPU>
 
 } // namespace etiss_sc
 
-#endif // __ETISS_SC_TLM_GENERIC_ISS_CPU_H__
+#endif // __ETISS_SC_TLM_GENERIC_CPU_H__
