@@ -27,6 +27,7 @@
 
 #include <string>
 #include <vector>
+#include <atomic>
 
 namespace etiss_sc
 {
@@ -108,7 +109,11 @@ class CPU final : public CPUBase, public ETISS_System
     };
     void wake_up_cpu()
     {
-        wake_up_cpu_.notify();
+        if(freeze_cpu_.load() == true)
+        {
+            wake_up_cpu_.notify();
+            freeze_cpu_ = false;
+        }
         std::cout << "        +++ iss_cpu woken up" << std::endl;
     };
 
@@ -118,7 +123,7 @@ class CPU final : public CPUBase, public ETISS_System
     std::shared_ptr<ResetTerminatePlugin> reset_terminate_handler_{ nullptr };
 
     sc_core::sc_event wake_up_cpu_{ "wake_up_cpu_event" };
-    bool freeze_cpu_{ false };
+    std::atomic<bool> freeze_cpu_{ false };
 
     std::forward_list<tlm::tlm_dmi> dmi_objects_{};
     uint64_t quantum_{ 0 };

@@ -281,7 +281,7 @@ void etiss_sc::CPU::systemCallSyncTime(ETISS_CPU *cpu)
 {
     auto offset = getTimeOffset(cpu);
     updateSystemCTime(offset);
-    if (freeze_cpu_)
+    if (freeze_cpu_.load() == true)
     {
         wait(wake_up_cpu_);
         freeze_cpu_ = false;
