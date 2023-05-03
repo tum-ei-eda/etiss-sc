@@ -68,13 +68,6 @@ add_subdirectory(lib)
 ####################################################################################################
 
 ####################################################################################################
-# cmake packages
-find_package(ETISS REQUIRED)
-find_package(elfio REQUIRED)
-find_package(Boost REQUIRED
-  COMPONENTS filesystem program_options
-)
-####################################################################################################
 
 add_library(${PROJECT_NAME} SHARED
     src/tlm/base/vp.cpp
@@ -100,16 +93,22 @@ target_link_libraries(${PROJECT_NAME} PUBLIC
     ETISS::etiss
     elfio::elfio
     scc
-)
-target_link_libraries(${PROJECT_NAME} PUBLIC
-    Boost::program_options
-    Boost::filesystem
+    simpleini
 )
 
 add_subdirectory(examples)
 
-set_target_properties(scc PROPERTIES
-	  PUBLIC_HEADER ${CMAKE_CURRENT_SOURCE_DIR}/src/scc.h
+set_target_properties(${PROJECT_NAME} PROPERTIES
+    PUBLIC_HEADER "${CMAKE_CURRENT_SOURCE_DIR}/include/etiss-sc.h"
+)
+
+install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/include/
+    DESTINATION include
+    FILES_MATCHING
+        PATTERN "*.h"
+        PATTERN "*.hpp"
+        PATTERN ".svn" EXCLUDE
+        PATTERN "dox" EXCLUDE
 )
 
 install(TARGETS ${PROJECT_NAME}

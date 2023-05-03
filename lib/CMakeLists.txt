@@ -81,3 +81,43 @@ if(NOT TARGET scc) # etiss-sc is standalone, i.e. not embedded alongside scc in 
     add_subdirectory(${scc_SOURCE_DIR} ${scc_BINARY_DIR})
 
 endif()
+
+###################################################################
+# simpleini
+if(NOT TARGET simpleini)
+    FetchContent_Declare(
+        simpleini
+        GIT_REPOSITORY https://github.com/brofield/simpleini.git
+        GIT_TAG        16b813a6af2456a027a1cd878c9f08e6809ad905
+    )
+
+    FetchContent_GetProperties(simpleini)
+    if(NOT simpleini_POPULATED)
+        FetchContent_Populate(simpleini)
+    endif()
+
+    add_library(simpleini INTERFACE)
+    target_include_directories(simpleini INTERFACE
+        ${simpleini_SOURCE_DIR}
+    )
+endif()
+
+####################################################################################################
+# ETISS (include before etiss-sc) Try to find from given prefix first
+if(NOT TARGET ETISS)
+    find_package(ETISS REQUIRED)
+endif()
+
+####################################################################################################
+# Boost
+if(NOT Boost_FOUND)
+    find_package(Boost REQUIRED
+        COMPONENTS filesystem program_options
+    )
+endif()
+
+####################################################################################################
+# ELFIO
+if(NOT elfio_FOUND)
+    find_package(elfio REQUIRED)
+endif()
