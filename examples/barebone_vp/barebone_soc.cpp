@@ -39,7 +39,7 @@ void BareboneSoC::setup()
 
     addMem(barebone_soc_params_.mem_params_.name_, std::move(barebone_soc_params_.mem_params_), bus_name);
 
-    etiss_sc::CPU *cpu{ nullptr };
+    etiss_sc::CPUBase *cpu{ nullptr };
     try
     {
         cpu = cpus_.at(cpu_name).get();

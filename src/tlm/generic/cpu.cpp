@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 Chair of EDA, Technical University of Munich
+ * Copyright 2022 Chair of EDA, Technical University of Munich
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,7 +16,7 @@
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 /// @file cpu.cpp
-/// @date 2019-03-10
+/// @date 2022-05-30
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 #include "etiss-sc/tlm/generic/cpu.h"
@@ -24,6 +24,9 @@
 #include "etiss-sc/utils/plugins.h"
 
 #define ID_ETISS_SC_CPU "etiss-sc: CPU"
+
+#define __LIKELY(x) __builtin_expect(!!(x), 1)
+#define __UNLIKELY(x) __builtin_expect(!!(x), 0)
 
 void system_call_syncTime(void *handle, ETISS_CPU *cpu)
 {
@@ -62,6 +65,10 @@ etiss_int32 system_call_dbg_write(void *handle, etiss_uint64 addr, etiss_uint8 *
     return static_cast<etiss_sc::CPU *>(handle)->systemCallDbgWrite(addr, buffer, length);
 }
 
+/************************************************************************
+ * CPU::IRQ                                                         *
+ ************************************************************************/
+
 etiss_sc::CPU::IRQ::IRQ(sc_core::sc_module_name name, size_t id, etiss::InterruptHandler *irq_handler)
     : sc_module(name), id_{ id }, irq_handler_{ irq_handler }
 {
@@ -77,7 +84,6 @@ etiss_sc::CPU::IRQ::IRQ(sc_core::sc_module_name name, size_t id, etiss::Interrup
 
 void etiss_sc::CPU::IRQ::execute()
 {
-
     if (irq_i_.read())
     {
         irq_handler_->setLine(id_, true, static_cast<etiss::uint64>(sc_core::sc_time_stamp().to_seconds() * 1e12));
@@ -88,9 +94,13 @@ void etiss_sc::CPU::IRQ::execute()
     }
 }
 
+/************************************************************************
+ * CPU::ResetTerminatePlugin                                                                    *
+ ************************************************************************/
+
 etiss_int32 etiss_sc::CPU::ResetTerminatePlugin::execute()
 {
-    if (terminate_)
+    if (__UNLIKELY(terminate_))
     {
         terminate_ = false;
         return etiss::RETURNCODE::CPUTERMINATED;
@@ -156,20 +166,21 @@ void etiss_sc::CPU::ResetTerminatePlugin::terminate()
     terminate_ = true;
 }
 
-size_t etiss_sc::CPU::id{ 0 };
+/************************************************************************
+ * ISS CPU                                                              *
+ ************************************************************************/
 
 etiss_sc::CPU::CPU(sc_core::sc_module_name name, CPUParams &&cpu_params)
-    : sc_core::sc_module(name)
-    , cpu_params_{ std::move(cpu_params) }
-    , quantum_{ etiss::cfg().get<uint64_t>("etiss.cpu_quantum_ps", 0) }
+    : CPUBase(name, std::move(cpu_params))
+    , quantum_{ static_cast<double>(etiss::cfg().get<uint64_t>("etiss.cpu_quantum_ps", 0)), sc_core::SC_PS }
 {
     SC_THREAD(execute);
     SC_METHOD(resetMethod);
     dont_initialize();
     sensitive << rst_i_;
 
-    data_sock_i_ = std::make_unique<tlm_utils::simple_initiator_socket<CPU>>("data_socket");
-    instr_sock_i_ = std::make_unique<tlm_utils::simple_initiator_socket<CPU>>("instr_socket");
+    data_sock_i_ = std::make_unique<tlm_utils::simple_initiator_socket<CPUBase>>("data_socket");
+    instr_sock_i_ = std::make_unique<tlm_utils::simple_initiator_socket<CPUBase>>("instr_socket");
 
     this->iread = system_call_iread;
     this->iwrite = system_call_iwrite;
@@ -191,11 +202,14 @@ etiss_sc::CPU::~CPU()
         {
             reset_terminate_handler_->terminate();
 
-            sc_core::sc_start(200.0 * clk_period_ns, sc_core::SC_NS);
-
-            if (status_ == CPUStatus::ACTIVE)
+            if(sc_core::sc_get_status() == sc_core::SC_PAUSED)
             {
-                XREPORT_FATAL("CPU stuck and not exiting properly in CPU::~CPU()");
+                sc_core::sc_start(200.0 * clk_period_ns, sc_core::SC_NS);
+
+                if (status_ == CPUStatus::ACTIVE)
+                {
+                    XREPORT_FATAL("CPU stuck and not exiting properly in CPU::~CPU()");
+                }
             }
         }
         else
@@ -211,15 +225,13 @@ etiss_sc::CPU::~CPU()
 void etiss_sc::CPU::setup()
 {
     etiss_core_ =
-        etiss::CPUCore::create(etiss::cfg().get<std::string>("arch.cpu", ""), "core" + std::to_string(CPU::id));
+        etiss::CPUCore::create(etiss::cfg().get<std::string>("arch.cpu", ""), "core" + std::to_string(CPUBase::id));
 
     if (!etiss_core_)
-    {
         XREPORT_FATAL("failed to create ETISS-CPUCore in CPU::setup()");
-    }
-    etiss::VirtualStruct::root()->mountStruct("core" + std::to_string(CPU::id), etiss_core_->getStruct());
 
-    CPU::id++;
+    etiss::VirtualStruct::root()->mountStruct("core" + std::to_string(CPUBase::id), etiss_core_->getStruct());
+
     cpu_params_.etiss_init_->loadIniPlugins(etiss_core_);
     cpu_params_.etiss_init_->loadIniJIT(etiss_core_);
 
@@ -263,25 +275,24 @@ void etiss_sc::CPU::setupDMI(uint64_t addr)
     }
 }
 
-size_t etiss_sc::CPU::getNumIRQs() const
-{
-    return cpu_params_.num_irqs_;
-}
-
 void etiss_sc::CPU::bindIRQ(size_t id, sc_core::sc_signal<bool> &irq) const
 {
     if (id >= irq_i_.size())
-    {
         XREPORT_FATAL("not enough interrupts in CPU::bindIRQ()");
-    }
 
     irq_i_[id]->irq_i_.bind(irq);
 }
 
 void etiss_sc::CPU::systemCallSyncTime(ETISS_CPU *cpu)
 {
-    auto offset = getTimeOffset(cpu);
-    updateSystemCTime(offset);
+    auto time_offset = getTimeOffset(cpu);
+    progressSystemCTime(time_offset);
+
+    if (freeze_cpu_.load() == true)
+    {
+        wait(wake_up_cpu_);
+        freeze_cpu_ = false;
+    }
 }
 
 etiss_int32 etiss_sc::CPU::systemCallIRead(ETISS_CPU *cpu, etiss_uint64 addr, etiss_uint32 length)
@@ -376,6 +387,8 @@ etiss_int32 etiss_sc::CPU::systemCallDbgWrite(etiss_uint64 addr, etiss_uint8 *bu
     return etiss::RETURNCODE::NOERROR;
 }
 
+/************************ reset and execute logic ***********************/
+
 void etiss_sc::CPU::resetMethod()
 {
     reset_terminate_handler_->reset(rst_i_.read());
@@ -399,20 +412,29 @@ void etiss_sc::CPU::execute()
         XREPORT("execute from CPUCore not done properly in CPU::execute()");
     }
 
+    if(terminate_callback_)
+    {
+        terminate_callback_(status_);
+        sc_core::wait();
+    }
     sc_core::sc_stop();
 }
 
+/***************************** transactions *****************************/
+
 void etiss_sc::CPU::transaction(ETISS_CPU *cpu, uint64_t addr, uint8_t *buffer, uint32_t length, tlm::tlm_command cmd,
-                                tlm_utils::simple_initiator_socket<CPU> &socket)
+                                tlm::tlm_initiator_socket<> &socket)
 {
-    auto time_offset = getTimeOffset(cpu);
-    updateSystemCTime(time_offset);
+    auto time_stamp = sc_core::sc_time_stamp();
+    auto time_offset = getTimeOffset(cpu, time_stamp);
+    time_stamp += time_offset; // avoid calling sc_time_stamp again
+    progressSystemCTime(time_offset);
 
     // NOTE: in case we have exceeded simulation time, we are not guaranteed that
     // the bound sockets are still in scope and hence we are returning early
     static auto sim_time =
         sc_core::sc_time{ static_cast<double>(etiss::cfg().get<int>("vp.simulation_time_us", 0)), sc_core::SC_US };
-    if (sim_time != sc_core::SC_ZERO_TIME && sc_core::sc_time_stamp() >= sim_time)
+    if (__UNLIKELY(sim_time != sc_core::SC_ZERO_TIME && sc_core::sc_time_stamp() >= sim_time))
     {
         etiss::log(etiss::WARNING, "Skipped memory access because transaction overran simulation time");
         payload_.set_response_status(tlm::TLM_OK_RESPONSE);
@@ -427,13 +449,18 @@ void etiss_sc::CPU::transaction(ETISS_CPU *cpu, uint64_t addr, uint8_t *buffer, 
             {
                 dmiAccess(d.get_dmi_ptr() + addr - d.get_start_address(), buffer, length);
                 payload_.set_response_status(tlm::TLM_OK_RESPONSE);
-                time_offset += d.get_write_latency() * length;
+                /* time_offset += d.get_write_latency() * length; */
+                // TODO: see else-if-path below
+                time_offset = d.get_write_latency() * length;
             }
             else if (cmd == tlm::TLM_READ_COMMAND && d.is_read_allowed())
             {
                 dmiAccess(buffer, d.get_dmi_ptr() + addr - d.get_start_address(), length);
                 payload_.set_response_status(tlm::TLM_OK_RESPONSE);
-                time_offset += d.get_write_latency() * length;
+                /* time_offset += d.get_write_latency() * length; */
+                // TODO: this woulc add to the cpu_time_offset from this function's entry such that the
+                // progressSystemCTime call down at the end of this IF-compound would progress the cpu offset twice.
+                time_offset = d.get_read_latency() * length;
             }
             else
             {
@@ -442,8 +469,8 @@ void etiss_sc::CPU::transaction(ETISS_CPU *cpu, uint64_t addr, uint8_t *buffer, 
                 socket->b_transport(payload_, time_offset);
             }
 
-            updateCPUTime(cpu, time_offset);
-            updateSystemCTime(time_offset);
+            updateCPUTime(cpu, time_offset, time_stamp);
+            progressSystemCTime(time_offset);
             return;
         }
     }
@@ -451,12 +478,12 @@ void etiss_sc::CPU::transaction(ETISS_CPU *cpu, uint64_t addr, uint8_t *buffer, 
     // coulnd't do transaction via dmi for some reason so trying via bus
     configurePayload(addr, cmd, buffer, length);
     socket->b_transport(payload_, time_offset);
-    updateCPUTime(cpu, time_offset);
-    updateSystemCTime(time_offset);
+    updateCPUTime(cpu, time_offset, time_stamp);
+    progressSystemCTime(time_offset);
 }
 
 uint32_t etiss_sc::CPU::dbgTransaction(uint64_t addr, uint8_t *buffer, uint32_t length, tlm::tlm_command cmd,
-                                       tlm_utils::simple_initiator_socket<CPU> &socket)
+                                       tlm::tlm_initiator_socket<> &socket)
 {
     for (auto d : dmi_objects_)
     {
@@ -484,36 +511,43 @@ uint32_t etiss_sc::CPU::dbgTransaction(uint64_t addr, uint8_t *buffer, uint32_t 
     return socket->transport_dbg(payload_);
 }
 
-void etiss_sc::CPU::dmiAccess(uint8_t *dst, uint8_t *src, unsigned len, bool flip_endianness)
+inline void etiss_sc::CPU::dmiAccess(uint8_t *dst, uint8_t *src, unsigned len, bool flip_endianness)
 {
-    for (size_t i = 0; i < len; ++i)
-    {
-        dst[i] = src[i];
-    }
+    std::memcpy(dst, src, len);
 
-    if (flip_endianness)
+    if (__UNLIKELY(flip_endianness))
     {
         etiss_sc::flipEndianness(dst, len);
     }
 }
 
-sc_core::sc_time etiss_sc::CPU::getTimeOffset(ETISS_CPU *cpu)
+inline sc_core::sc_time etiss_sc::CPU::getTimeOffset(ETISS_CPU *cpu) const
 {
-    return (sc_core::sc_time(cpu->cpuTime_ps, sc_core::SC_PS) - sc_core::sc_time_stamp());
+    return getTimeOffset(cpu, sc_core::sc_time_stamp());
+}
+inline sc_core::sc_time etiss_sc::CPU::getTimeOffset(ETISS_CPU *cpu, sc_core::sc_time const &current_time_stamp) const
+{
+    return  sc_core::sc_time{static_cast<double>(cpu->cpuTime_ps), sc_core::SC_PS} - current_time_stamp;
 }
 
-void etiss_sc::CPU::updateCPUTime(ETISS_CPU *cpu, const sc_core::sc_time &time_offset)
+inline void etiss_sc::CPU::updateCPUTime(ETISS_CPU *cpu, const sc_core::sc_time &time_offset)
 {
-    cpu->cpuTime_ps = (sc_core::sc_time_stamp().to_seconds() + time_offset.to_seconds()) * 1e12;
+    updateCPUTime(cpu, time_offset, sc_core::sc_time_stamp());
 }
 
-void etiss_sc::CPU::updateSystemCTime(sc_core::sc_time &time_offset)
+inline void etiss_sc::CPU::updateCPUTime(ETISS_CPU *cpu, const sc_core::sc_time &time_offset,
+                                         sc_core::sc_time const &current_time_stamp)
 {
-    if (sc_core::sc_time_stamp() == sc_core::SC_ZERO_TIME ||
-        time_offset > sc_core::sc_time{ static_cast<double>(quantum_), sc_core::SC_PS })
+    // avoid multiple calls to sc_time_stamp() alltogether
+    cpu->cpuTime_ps = (current_time_stamp + time_offset).to_seconds() * 1e12;
+}
+
+void etiss_sc::CPU::progressSystemCTime(sc_core::sc_time &time_offset)
+{
+    if (time_offset > quantum_)
     {
         wait(time_offset);
-        time_offset = sc_core::sc_time{ 0, sc_core::SC_PS };
+        time_offset = sc_core::SC_ZERO_TIME; // sc_core::sc_time{ 0, sc_core::SC_PS };
     }
 }
 
@@ -528,6 +562,10 @@ void etiss_sc::CPU::configurePayload(uint64_t addr, tlm::tlm_command cmd, uint8_
     payload_.set_dmi_allowed(false);
     payload_.set_response_status(tlm::TLM_INCOMPLETE_RESPONSE);
 }
+
+/************************************************************************
+ * CPU Factory                                                          *
+ ************************************************************************/
 
 etiss_sc::CPUFactory::CPUFactory(const etiss_sc::Config &cfg, etiss::Initializer *etiss_init)
     : etiss_sc::Factory<CPU>(cfg, etiss_init)

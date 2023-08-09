@@ -31,9 +31,9 @@ jobs:
         shell: bash
         working-directory: ${{runner.workspace}}
         run: |
-          sudo apt-get update 
+          sudo apt-get update
           sudo apt-get install -y libboost-filesystem-dev libboost-system-dev libboost-program-options-dev
-          pip install --upgrade conan
+          pip install --force-reinstall "conan==1.59.0"
           conan user
           if ! [[ $(conan profile list) = *default* ]]
           then
@@ -54,14 +54,14 @@ jobs:
           wget https://static.dev.sifive.com/dev-tools/$TC_NAME${{ matrix.config.tc-ext }}
           ${{ matrix.config.unpack }} $TC_NAME${{ matrix.config.tc-ext }}
           mv ${TC_NAME} riscv-tc
-      
+
       - name: Requirements (ETISS)
         shell: bash
         working-directory: ${{runner.workspace}}
         run: |
           git clone https://github.com/tum-ei-eda/etiss.git etiss-src
           cd etiss-src
-          git checkout 36902d32ae760aa3c413ca06189e6515bc28d79c
+          git checkout 40c0b920cf4072adf189211ca44291534355dcfd
           cd ..
           export LLVM_DIR=${{runner.workspace}}/llvm-lib
           cmake -S etiss-src -B etiss-build -DCMAKE_BUILD_TYPE=${BUILD_TYPE} -DCMAKE_INSTALL_PREFIX=etiss
@@ -89,7 +89,7 @@ jobs:
       - name: Create Test Environment
         run: |
           cmake -E make_directory ${{runner.workspace}}/test
-      
+
       - name: Setup tests
         working-directory: ${{runner.workspace}}/test
         run: |
