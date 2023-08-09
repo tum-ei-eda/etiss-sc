@@ -55,12 +55,14 @@ else()
         FOUND_VAR ETISS_FOUND
         REQUIRED_VARS ETISS_INCLUDE_DIRS ETISS_LIBRARIES
     )
-
-    if (NOT TARGET ETISS::etiss)
-        add_library(ETISS::etiss INTERFACE IMPORTED)
-        set_target_properties(ETISS::etiss PROPERTIES
-            INTERFACE_INCLUDE_DIRECTORIES "${ETISS_INCLUDE_DIRS}"
-            INTERFACE_LINK_LIBRARIES "${ETISS_LIBRARIES}"
-        )
+    
+    if(NOT TARGET ETISS)
+        add_library(ETISS INTERFACE IMPORTED)
     endif()
+    set_target_properties(ETISS PROPERTIES
+                          INTERFACE_INCLUDE_DIRECTORIES "${ETISS_INCLUDE_DIRS}"
+                          INTERFACE_LINK_LIBRARIES "${ETISS_LIBRARIES}"
+                          IMPORTED_GLOBAL TRUE
+    )
+    add_library(ETISS::etiss ALIAS ETISS)    
 endif()

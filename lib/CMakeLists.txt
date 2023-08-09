@@ -107,7 +107,6 @@ endif()
 if(NOT TARGET ETISS)
     find_package(ETISS REQUIRED)
 endif()
-
 ####################################################################################################
 # Boost
 if(NOT Boost_FOUND)
@@ -118,6 +117,15 @@ endif()
 
 ####################################################################################################
 # ELFIO
-if(NOT elfio_FOUND)
+if(NOT TARGET elfio)
+    # elfio not already defined as target somewhere
     find_package(elfio REQUIRED)
+endif()
+if(NOT TARGET elfio::elfio)
+    add_library(elfio::elfio ALIAS elfio)
+else()
+    # make sure (most likely imported) target is so globally for usage in parent CMakeLists.txt
+    set_target_properties(elfio::elfio PROPERTIES
+                          IMPORTED_GLOBAL TRUE
+    )
 endif()
