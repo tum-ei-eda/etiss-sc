@@ -33,10 +33,10 @@ namespace etiss_sc
 {
 
 // Note: CPU is a systemc CPU with an etiss::CPUCore and ETISS_CPU is a struct from etiss
-class CPU final : public CPUBase, public ETISS_System
+class CPU : public CPUBase, public ETISS_System
 {
     SC_HAS_PROCESS(CPU);
-
+    bool aligned_{false};
   protected:
     class IRQ : public sc_core::sc_module
     {
@@ -84,7 +84,8 @@ class CPU final : public CPUBase, public ETISS_System
     {
         ACTIVE,
         FINISHED,
-        TERMINATED
+        TERMINATED,
+        STUCK
     };
   public:
     void set_terminate_callback(std::function<void(CPUStatus)> func) { terminate_callback_ = func; }
@@ -98,7 +99,7 @@ class CPU final : public CPUBase, public ETISS_System
     void setupDMI(uint64_t addr) override;
     void bindIRQ(size_t id, sc_core::sc_signal<bool> &irq) const;
 
-    virtual void systemCallSyncTime(ETISS_CPU *cpu);
+    virtual etiss_int32 systemCallSyncTime(ETISS_CPU *cpu);
     virtual etiss_int32 systemCallIRead(ETISS_CPU *cpu, etiss_uint64 addr, etiss_uint32 length);
     virtual etiss_int32 systemCallIWrite(ETISS_CPU *cpu, etiss_uint64 addr, etiss_uint8 *buffer, etiss_uint32 length);
     virtual etiss_int32 systemCallDRead(ETISS_CPU *cpu, etiss_uint64 addr, etiss_uint8 *buffer, etiss_uint32 length);
@@ -110,6 +111,8 @@ class CPU final : public CPUBase, public ETISS_System
     std::shared_ptr<etiss::VirtualStruct> get_core_struct(void) { return etiss_core_->getStruct(); }
     std::shared_ptr<etiss::CPUCore> get_core(void) { return etiss_core_; }
     ETISS_CPU *get_etiss_cpu_struct(void) { return etiss_core_->getState(); }
+
+    void align_cpu_to_systemc_time(void);
 
     void freeze_cpu()
     {
@@ -128,7 +131,7 @@ class CPU final : public CPUBase, public ETISS_System
 
     std::shared_ptr<etiss::CPUCore> etiss_core_{ nullptr };
 
-  private:
+  protected:
     std::function<void(CPUStatus)> terminate_callback_{};
     std::shared_ptr<etiss::InterruptHandler> irq_handler_{ nullptr };
     std::shared_ptr<ResetTerminatePlugin> reset_terminate_handler_{ nullptr };

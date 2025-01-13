@@ -31,6 +31,10 @@ void addPcTraceLogger(std::shared_ptr<etiss::CPUCore> cpu, std::string pc_trace_
     ETISS_CPU *cpuState = cpu->getState();
     const bool write_to_stdout = pc_trace_filename == "";
 
+    //etiss::cfg().set<int>("etiss.max_block_size", 1);
+    cpu->addPlugin(std::make_shared<TracePrinter>(-1));
+    return;
+
     // setup VariableValueLogger, using a lambda function as callback function.
     // A lambda function can be used as a function pointer, whereas a functor
     // cannot, even if also lambda functions can have a state (via captures).

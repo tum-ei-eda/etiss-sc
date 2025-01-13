@@ -69,7 +69,7 @@ add_subdirectory(lib)
 
 ####################################################################################################
 
-add_library(${PROJECT_NAME} SHARED
+add_library(${PROJECT_NAME}
     src/tlm/base/vp.cpp
     src/tlm/base/soc.cpp
 

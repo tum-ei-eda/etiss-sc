@@ -90,6 +90,7 @@ etiss_sc::Mem::Mem(sc_core::sc_module_name name, MemParams &&params)
     sock_t_->register_get_direct_mem_ptr(this, &Mem::get_direct_mem_ptr);
 
     mem_.resize(params_.size_);
+    std::fill(mem_.begin(), mem_.end(), 0);
     // garbageMem();
 }
 

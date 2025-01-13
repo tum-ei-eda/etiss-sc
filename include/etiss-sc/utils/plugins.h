@@ -33,7 +33,7 @@
 #include "etiss/IntegratedLibrary/VariableValueLogger.h"
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-/// @brief A simple logger dedicated to print PC trace. Most accurate when Translation::MaxBlockSize 
+/// @brief A simple logger dedicated to print PC trace. Most accurate when Translation::MaxBlockSize
 ///        in ETISS.int is set to 1.
 /// @param terminateAddr: Terminate simulation when hit certain address
 /// @param [Optional] printOnScreen: Print PC on screen if true
@@ -54,16 +54,16 @@ class TracePrinter : public etiss::CoroutinePlugin
     etiss::int32 execute()
     {
         if (printOnScreen_)
-            std::cout << "[INFO] {TracePrinter} : PC = 0x" << std::hex << cpu_->instructionPointer << std::endl;
+            std::cout << "[INFO] {TracePrinter} : PC = 0x"  << std::hex << cpu_->instructionPointer << std::dec << "|" << cpu_->instructionPointer << std::endl;
 
-        pcTrace_ << "[INFO] {TracePrinter}: PC = 0x" << std::hex << cpu_->instructionPointer << std::endl;
+        pcTrace_ << "[INFO] {TracePrinter}: PC = 0x" << std::hex << cpu_->instructionPointer << std::dec << "|" << cpu_->instructionPointer << std::endl;
 
         if (this->cpu_->instructionPointer == terminateAddr_)
         {
             if (++hitTimes_ == terminateHit_)
             {
                 printLog();
-                return etiss::RETURNCODE::CPUTERMINATED;
+                return etiss::RETURNCODE::CPUFINISHED;//CPUTERMINATED;
             }
         }
         return etiss::RETURNCODE::NOERROR;
@@ -144,7 +144,7 @@ class EXIT_ON_INFLOOP : public etiss::CoroutinePlugin
             pffs.flush();
             pffs.close();
 
-            return etiss::RETURNCODE::CPUTERMINATED;
+            return etiss::RETURNCODE::CPUFINISHED;//CPUTERMINATED;
         }
         return etiss::RETURNCODE::NOERROR;
     }
