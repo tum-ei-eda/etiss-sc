@@ -17,9 +17,9 @@ jobs:
     name: ${{ matrix.config.name }}_build
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       - name:  Cache Conan Data
-        uses: actions/cache@v2
+        uses: actions/cache@v4
         env:
           cache-name: conan-cache
         with:
