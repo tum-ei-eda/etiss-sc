@@ -60,9 +60,6 @@ jobs:
         working-directory: ${{runner.workspace}}
         run: |
           git clone https://github.com/tum-ei-eda/etiss.git etiss-src
-          cd etiss-src
-          git checkout 36902d32ae760aa3c413ca06189e6515bc28d79c
-          cd ..
           export LLVM_DIR=${{runner.workspace}}/llvm-lib
           cmake -S etiss-src -B etiss-build -DCMAKE_BUILD_TYPE=${BUILD_TYPE} -DCMAKE_INSTALL_PREFIX=etiss
           cmake --build etiss-build --config ${BUILD_TYPE} --parallel $(nproc)
