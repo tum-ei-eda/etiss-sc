@@ -81,6 +81,18 @@ if(NOT TARGET scc) # etiss-sc is standalone, i.e. not embedded alongside scc in 
 
 endif()
 
+####################################################################################################
+# ETISS (include before etiss-sc) Try to find from given prefix first
+if(NOT TARGET ETISS)
+    find_package(ETISS REQUIRED)
+else()
+    if(NOT TARGET ETISS::ETISS)
+        add_library(ETISS::etiss ALIAS ETISS)
+    endif()
+endif()
+
+####################################################################################################
+# Boost
 message("Boost_LIBRARIES: ${Boost_LIBRARIES}")
 if(NOT TARGET Boost::filesystem OR NOT TARGET Boost::program_options)
     find_package(Boost REQUIRED

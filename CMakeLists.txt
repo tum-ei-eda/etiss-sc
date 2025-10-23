@@ -69,11 +69,7 @@ add_subdirectory(lib)
 
 ####################################################################################################
 # cmake packages
-find_package(ETISS REQUIRED)
 find_package(elfio REQUIRED)
-find_package(Boost REQUIRED
-  COMPONENTS filesystem program_options
-)
 ####################################################################################################
 
 add_library(${PROJECT_NAME} SHARED
