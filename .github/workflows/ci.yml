@@ -59,7 +59,7 @@ jobs:
         shell: bash
         working-directory: ${{runner.workspace}}
         run: |
-          git clone https://github.com/tum-ei-eda/etiss.git etiss-src
+          git clone --recurse-submodules https://github.com/tum-ei-eda/etiss.git etiss-src
           export LLVM_DIR=${{runner.workspace}}/llvm-lib
           cmake -S etiss-src -B etiss-build -DCMAKE_BUILD_TYPE=${BUILD_TYPE} -DCMAKE_INSTALL_PREFIX=etiss
           cmake --build etiss-build --config ${BUILD_TYPE} --parallel $(nproc)
