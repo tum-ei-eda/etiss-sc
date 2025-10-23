@@ -38,7 +38,6 @@ if(NOT TARGET scc) # etiss-sc is standalone, i.e. not embedded alongside scc in 
     )
 
     set(CONAN_PACKAGE_LIST
-        boost/1.76.0
         elfio/3.8
         fmt/6.1.2
         zlib/1.2.11
