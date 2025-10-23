@@ -47,6 +47,9 @@ class CPUParams
 // abstract base class
 class CPUBase : public sc_core::sc_module
 {
+  protected:
+    sc_core::sc_time cpu_time_ps_{ 0, sc_core::SC_PS };
+
   public:
     sc_core::sc_in<bool> rst_i_{ "reset_in" };
     sc_core::sc_in<bool> clk_i_{ "clock_in" };

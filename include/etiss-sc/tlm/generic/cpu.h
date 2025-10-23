@@ -33,9 +33,10 @@ namespace etiss_sc
 {
 
 // Note: CPU is a systemc CPU with an etiss::CPUCore and ETISS_CPU is a struct from etiss
-class CPU final : public CPUBase, public ETISS_System
+class CPU : public CPUBase, public ETISS_System
 {
     SC_HAS_PROCESS(CPU);
+    bool aligned_{ false };
 
   protected:
     class IRQ : public sc_core::sc_module
@@ -81,6 +82,17 @@ class CPU final : public CPUBase, public ETISS_System
     };
 
   public:
+    enum class CPUStatus
+    {
+        ACTIVE,
+        FINISHED,
+        TERMINATED,
+        STUCK
+    };
+
+  public:
+    void set_terminate_callback(std::function<void(CPUStatus)> func) { terminate_callback_ = func; }
+
     std::vector<std::unique_ptr<IRQ>> irq_i_{}; ///< Interrupt vector
 
     CPU(sc_core::sc_module_name name, CPUParams &&cpu_params);
@@ -100,7 +112,10 @@ class CPU final : public CPUBase, public ETISS_System
 
     int32_t get_etiss_status(void) { return etiss_status_; }
     std::shared_ptr<etiss::VirtualStruct> get_core_struct(void) { return etiss_core_->getStruct(); }
+    std::shared_ptr<etiss::CPUCore> get_core(void) { return etiss_core_; }
     ETISS_CPU *get_etiss_cpu_struct(void) { return etiss_core_->getState(); }
+
+    void align_cpu_to_systemc_time(void);
 
     void freeze_cpu()
     {
@@ -109,7 +124,7 @@ class CPU final : public CPUBase, public ETISS_System
     };
     void wake_up_cpu()
     {
-        if(freeze_cpu_.load() == true)
+        if (freeze_cpu_.load() == true)
         {
             wake_up_cpu_.notify();
             freeze_cpu_ = false;
@@ -117,8 +132,10 @@ class CPU final : public CPUBase, public ETISS_System
         std::cout << "        +++ iss_cpu woken up" << std::endl;
     };
 
-  private:
     std::shared_ptr<etiss::CPUCore> etiss_core_{ nullptr };
+
+  protected:
+    std::function<void(CPUStatus)> terminate_callback_{};
     std::shared_ptr<etiss::InterruptHandler> irq_handler_{ nullptr };
     std::shared_ptr<ResetTerminatePlugin> reset_terminate_handler_{ nullptr };
 
@@ -126,15 +143,10 @@ class CPU final : public CPUBase, public ETISS_System
     std::atomic<bool> freeze_cpu_{ false };
 
     std::forward_list<tlm::tlm_dmi> dmi_objects_{};
-    uint64_t quantum_{ 0 };
+    sc_core::sc_time const quantum_;
     tlm::tlm_generic_payload payload_{};
 
-    enum class CPUStatus
-    {
-        ACTIVE,
-        FINISHED,
-        TERMINATED
-    } status_{};
+    CPUStatus status_{};
     int32_t etiss_status_{ etiss::RETURNCODE::NOERROR };
 
     virtual void resetMethod();
@@ -146,9 +158,12 @@ class CPU final : public CPUBase, public ETISS_System
                                     tlm::tlm_initiator_socket<> &socket);
     virtual void dmiAccess(uint8_t *dst, uint8_t *src, unsigned len, bool flip_endianness = false);
 
-    sc_core::sc_time getTimeOffset(ETISS_CPU *cpu);
-    void updateCPUTime(ETISS_CPU *cpu, const sc_core::sc_time &time_offset);
-    void updateSystemCTime(sc_core::sc_time &time_offset);
+    sc_core::sc_time getTimeOffset(ETISS_CPU *cpu) const; ///< LEGACY: use getTimeOffset with explicit time stamp
+    sc_core::sc_time getTimeOffset(ETISS_CPU *cpu, sc_core::sc_time const &current_time_stamp) const;
+    void updateCPUTime(ETISS_CPU *cpu,
+                       const sc_core::sc_time &time_offset); ///< LEGACY: use updateCPUTime with explicit time stamp
+    void updateCPUTime(ETISS_CPU *cpu, const sc_core::sc_time &time_offset, sc_core::sc_time const &current_time_stamp);
+    void progressSystemCTime(sc_core::sc_time &time_offset);
     void configurePayload(uint64_t addr, tlm::tlm_command cmd, uint8_t *buffer = nullptr, uint32_t length = 0);
 };
 

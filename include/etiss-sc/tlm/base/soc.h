@@ -57,6 +57,8 @@ class VP;
 class SoC : public sc_core::sc_module
 {
   public:
+    void wire_clk_signal(sc_core::sc_signal<bool> &global_clk);
+
     sc_core::sc_in<bool> rst_i_{ "reset_in" };
 
     SoC(sc_core::sc_module_name, SoCParams &&);

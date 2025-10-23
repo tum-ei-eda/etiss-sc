@@ -90,6 +90,7 @@ etiss_sc::Mem::Mem(sc_core::sc_module_name name, MemParams &&params)
     sock_t_->register_get_direct_mem_ptr(this, &Mem::get_direct_mem_ptr);
 
     mem_.resize(params_.size_);
+    std::fill(mem_.begin(), mem_.end(), 0);
     // garbageMem();
 }
 
@@ -107,6 +108,7 @@ void etiss_sc::Mem::reset()
 
 void etiss_sc::Mem::garbageMem()
 {
+    return;
     static std::default_random_engine generator{ static_cast<uint64_t>(0) };
     std::uniform_int_distribution<int> random_char_{ 0, 255 };
 
