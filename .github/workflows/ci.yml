@@ -11,7 +11,7 @@ jobs:
     strategy:
       matrix:
         config:
-          - {name: "Linux", os: ubuntu-20.04, cmakegen: "", llvm: "linux-gnu-ubuntu-20.04", llvm-ext: ".tar.xz", tc: "linux-ubuntu14", tc-ext: ".tar.gz", unpack: "tar xf"}
+          - {name: "Linux", os: ubuntu-22.04, cmakegen: "", llvm: "linux-gnu-ubuntu-20.04", llvm-ext: ".tar.xz", tc: "linux-ubuntu14", tc-ext: ".tar.gz", unpack: "tar xf"}
 
     runs-on: ${{ matrix.config.os }}
     name: ${{ matrix.config.name }}_build
