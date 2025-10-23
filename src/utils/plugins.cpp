@@ -31,6 +31,10 @@ void addPcTraceLogger(std::shared_ptr<etiss::CPUCore> cpu, std::string pc_trace_
     ETISS_CPU *cpuState = cpu->getState();
     const bool write_to_stdout = pc_trace_filename == "";
 
+    //etiss::cfg().set<int>("etiss.max_block_size", 1);
+    cpu->addPlugin(std::make_shared<TracePrinter>(-1));
+    return;
+
     // setup VariableValueLogger, using a lambda function as callback function.
     // A lambda function can be used as a function pointer, whereas a functor
     // cannot, even if also lambda functions can have a state (via captures).
@@ -109,14 +113,14 @@ void addBootAndInjectionCallback(std::shared_ptr<etiss::CPUCore> cpu)
     {
         etiss::fault::Trigger const *endTrigger = &t;
         // select sub Trigger if Trigger is a meta counter
-        while (endTrigger->getType() == etiss::fault::Trigger::Type::META_COUNTER)
+        while (endTrigger->getType() == +etiss::fault::Trigger::type_t::META_COUNTER)
             endTrigger = &endTrigger->getSubTrigger();
 
         // only variable value trigger can be handled with this callback
         // for time trigger an other callback type must be choosen e.g.
         // InstructionAccurateCallback -> But this has a perfomance leck of a
         // factor by circa 10, cause it injects for every instruction a callback
-        if (endTrigger->getType() == etiss::fault::Trigger::Type::VARIABLEVALUE)
+        if (endTrigger->getType() == +etiss::fault::Trigger::type_t::VARIABLEVALUE)
         {
             cb->addCallbackAddress(t.getTriggerFieldValue());
             std::stringstream ss;

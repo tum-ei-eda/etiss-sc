@@ -231,8 +231,8 @@ void etiss_sc::CPU::setup()
     if (etiss_core_->getInterruptVector())
     {
         irq_handler_ = std::make_shared<etiss::InterruptHandler>(
-            etiss_core_->getInterruptVector(), etiss_core_->getArch(), cpu_params_.irq_handler_type_, false);
-        etiss_core_->addPlugin(irq_handler_);
+            etiss_core_->getInterruptVector(), etiss_core_->getInterruptEnable(), etiss_core_->getArch(),
+            cpu_params_.irq_handler_type_, false);
 
         auto num_irq =
             std::min(cpu_params_.num_irqs_, static_cast<size_t>(etiss_core_->getInterruptVector()->width() * 8));

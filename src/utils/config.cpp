@@ -24,7 +24,7 @@
 #include "etiss-sc/utils/logging.h"
 
 #include <etiss/ETISS.h>
-#include <etiss/IntegratedLibrary/SimpleIni/SimpleIni.h>
+#include <SimpleIni.h>
 #include <cassert>
 
 static bool g_argsset = false;
