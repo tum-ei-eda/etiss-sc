@@ -72,7 +72,7 @@ add_subdirectory(lib)
 find_package(elfio REQUIRED)
 ####################################################################################################
 
-add_library(${PROJECT_NAME} SHARED
+add_library(${PROJECT_NAME}
     src/tlm/base/vp.cpp
     src/tlm/base/soc.cpp
 
@@ -102,8 +102,17 @@ target_link_libraries(${PROJECT_NAME} PUBLIC
 
 add_subdirectory(examples)
 
-set_target_properties(scc PROPERTIES
+set_target_properties(${PROJECT_NAME} PROPERTIES
     PUBLIC_HEADER "${CMAKE_CURRENT_SOURCE_DIR}/include/etiss-sc/etiss-sc.h"
+)
+
+install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/include/
+    DESTINATION include
+    FILES_MATCHING
+        PATTERN "*.h"
+        PATTERN "*.hpp"
+        PATTERN ".svn" EXCLUDE
+        PATTERN "dox" EXCLUDE
 )
 
 install(TARGETS ${PROJECT_NAME}
