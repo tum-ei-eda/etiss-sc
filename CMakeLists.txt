@@ -97,19 +97,17 @@ target_include_directories(${PROJECT_NAME} PUBLIC
 )
 target_link_libraries(${PROJECT_NAME} PUBLIC
     ${SystemC_LIBRARIES}
+    ${Boost_PROGRAM_OPTIONS_LIBRARY}
+    ${Boost_FILESYSTEM_LIBRARY}
     ETISS::etiss
     elfio::elfio
     scc
-)
-target_link_libraries(${PROJECT_NAME} PUBLIC
-    Boost::program_options
-    Boost::filesystem
 )
 
 add_subdirectory(examples)
 
 set_target_properties(scc PROPERTIES
-	  PUBLIC_HEADER ${CMAKE_CURRENT_SOURCE_DIR}/src/scc.h
+    PUBLIC_HEADER "${CMAKE_CURRENT_SOURCE_DIR}/include/etiss-sc/etiss-sc.h"
 )
 
 install(TARGETS ${PROJECT_NAME}

@@ -81,3 +81,13 @@ if(NOT TARGET scc) # etiss-sc is standalone, i.e. not embedded alongside scc in 
     add_subdirectory(${scc_SOURCE_DIR} ${scc_BINARY_DIR})
 
 endif()
+
+message("Boost_LIBRARIES: ${Boost_LIBRARIES}")
+if(NOT TARGET Boost::filesystem OR NOT TARGET Boost::program_options)
+    find_package(Boost REQUIRED
+        COMPONENTS filesystem program_options
+    )
+endif()
+set(Boost_LIBRARIES ${Boost_LIBRARIES} PARENT_SCOPE)
+set(Boost_PROGRAM_OPTIONS_LIBRARY ${Boost_PROGRAM_OPTIONS_LIBRARY} PARENT_SCOPE)
+set(Boost_FILESYSTEM_LIBRARY ${Boost_FILESYSTEM_LIBRARY} PARENT_SCOPE)
