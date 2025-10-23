@@ -38,7 +38,6 @@ if(NOT TARGET scc) # etiss-sc is standalone, i.e. not embedded alongside scc in 
     )
 
     set(CONAN_PACKAGE_LIST
-        elfio/3.8
         fmt/6.1.2
         zlib/1.2.11
     )
@@ -89,6 +88,12 @@ else()
     if(NOT TARGET ETISS::ETISS)
         add_library(ETISS::etiss ALIAS ETISS)
     endif()
+endif()
+
+####################################################################################################
+# ELFIO
+if(NOT TARGET elfio::elfio AND NOT ETISS_AS_SUBMODULE)
+    add_subdirectory(elfio)
 endif()
 
 ####################################################################################################

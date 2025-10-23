@@ -1,0 +1,3 @@
+[submodule "lib/elfio"]
+	path = lib/elfio
+	url = https://github.com/serge1/ELFIO.git
