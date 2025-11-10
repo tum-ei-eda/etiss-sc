@@ -177,16 +177,12 @@ jobs:
           ${{ matrix.config.unpack }} $TC_NAME${{ matrix.config.tc-ext }}
           mv ${TC_NAME} riscv-tc
 
-      - name: Create Test Environment
-        run: |
-          cmake -E make_directory ${{runner.workspace}}/test
-      
+
       - name: Setup tests
-        working-directory: ${{runner.workspace}}/test
         run: |
           ${{runner.workspace}}/riscv-tc/bin/riscv64-unknown-elf-gcc -march=rv32im -mabi=ilp32 -O3 -T ${GITHUB_WORKSPACE}/etiss-sc_src/examples/barebone_vp/target_software/link.ld -nostartfiles ${GITHUB_WORKSPACE}/etiss-sc_src/examples/barebone_vp/target_software/crt0.s ${GITHUB_WORKSPACE}/etiss-sc_src/examples/barebone_vp/target_software/helloworld.c ${GITHUB_WORKSPACE}/etiss-sc_src/examples/barebone_vp/target_software/syscalls.c -DETISSVP_LOGGER=0xf0000000 -o helloworld.elf
 
       - name: Run tests
         working-directory: /etiss-sc_build
         run: |
-          /etiss-sc_install/example/barebone_vp --etiss ${GITHUB_WORKSPACE}/etiss-sc_src/examples/barebone_vp/ini/etiss.ini --elfs ${{runner.workspace}}/test/helloworld.elf
+          /etiss-sc_install/example/barebone_vp --etiss ${GITHUB_WORKSPACE}/etiss-sc_src/examples/barebone_vp/ini/etiss.ini --elfs helloworld.elf
