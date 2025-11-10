@@ -139,7 +139,7 @@ jobs:
       - name: Install git on container
         run: |
           apt update
-          apt install -y git cmake
+          apt install -y git cmake wget
 
       - name: Checkout etiss-sc
         uses: actions/checkout@v4
