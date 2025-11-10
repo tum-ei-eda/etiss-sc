@@ -98,11 +98,22 @@ jobs:
           cmake --build /etiss_build --config ${BUILD_TYPE} --parallel $(nproc)
           cmake --install /etiss_build --config ${BUILD_TYPE}
 
+      - name: Patch Submodule
+        shell: bash
+        run: |
+          scc_dir="${GITHUB_WORKSPACE}/etiss-sc_src/lib/scc"
+          _dir_="$PWD"
+          ls -la ${scc_dir}
+          cd ${scc_dir}
+          ls -la .
+          git apply "../patches/scc-gcc_gt_13.patch"
+          git apply "../patches/scc-byteenabletransactions.patch"
+
       - name: Configure CMake
         shell: bash
         working-directory: ${{runner.workspace}}
         run: |
-          cmake -S ${GITHUB_WORKSPACE}etiss-sc_src -B /etiss-sc_build -DETISS_PREFIX=/etiss_install -DCMAKE_BUILD_TYPE=${BUILD_TYPE} -DCMAKE_INSTALL_PREFIX=/etiss-sc_install
+          cmake -S ${GITHUB_WORKSPACE}/etiss-sc_src -B /etiss-sc_build -DETISS_PREFIX=/etiss_install -DCMAKE_BUILD_TYPE=${BUILD_TYPE} -DCMAKE_INSTALL_PREFIX=/etiss-sc_install
 
       - name: Build
         shell: bash
