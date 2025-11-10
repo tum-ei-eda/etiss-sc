@@ -102,7 +102,7 @@ jobs:
         shell: bash
         working-directory: ${{runner.workspace}}
         run: |
-          cmake -S ${GITHUB_WORKSPACE} -B /etiss-sc_build -DETISS_PREFIX=/etiss_install -DCMAKE_BUILD_TYPE=${BUILD_TYPE} -DCMAKE_INSTALL_PREFIX=/etiss-sc_install
+          cmake -S ${GITHUB_WORKSPACE}etiss-sc_src -B /etiss-sc_build -DETISS_PREFIX=/etiss_install -DCMAKE_BUILD_TYPE=${BUILD_TYPE} -DCMAKE_INSTALL_PREFIX=/etiss-sc_install
 
       - name: Build
         shell: bash
