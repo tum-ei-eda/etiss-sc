@@ -183,4 +183,5 @@ jobs:
 
       - name: Run tests
         run: |
+          chmod +x /etiss-sc_install/example/barebone_vp
           /etiss-sc_install/example/barebone_vp --etiss ${GITHUB_WORKSPACE}/etiss-sc_src/examples/barebone_vp/ini/etiss.ini --elfs helloworld.elf
