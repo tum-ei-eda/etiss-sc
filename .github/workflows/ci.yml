@@ -133,6 +133,7 @@ jobs:
     runs-on: ${{ matrix.config.os_name }}-${{ matrix.config.os_version }}
     container: ${{ matrix.config.os_name }}:${{ matrix.config.os_version }}
     name: build-${{ matrix.config.os_name }}-${{ matrix.config.os_version }}
+    needs: build
 
     steps:
       - name: Install git on container
@@ -140,7 +141,7 @@ jobs:
           apt update
           apt install -y git cmake
 
-      - name: Checkout vrtlmod
+      - name: Checkout etiss-sc
         uses: actions/checkout@v4
         with:
           path: etiss-sc_src
