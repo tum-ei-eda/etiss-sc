@@ -170,7 +170,6 @@ jobs:
 
       - name: Test Requirements (RISC-V cross toolchain)
         shell: bash
-        working-directory: ${{runner.workspace}}
         run: |
           TC_NAME="riscv64-unknown-elf-gcc-8.3.0-2020.04.0-x86_64-${{ matrix.config.tc }}"
           wget https://static.dev.sifive.com/dev-tools/$TC_NAME${{ matrix.config.tc-ext }}
@@ -180,7 +179,7 @@ jobs:
 
       - name: Setup tests
         run: |
-          ${{runner.workspace}}/riscv-tc/bin/riscv64-unknown-elf-gcc -march=rv32im -mabi=ilp32 -O3 -T ${GITHUB_WORKSPACE}/etiss-sc_src/examples/barebone_vp/target_software/link.ld -nostartfiles ${GITHUB_WORKSPACE}/etiss-sc_src/examples/barebone_vp/target_software/crt0.s ${GITHUB_WORKSPACE}/etiss-sc_src/examples/barebone_vp/target_software/helloworld.c ${GITHUB_WORKSPACE}/etiss-sc_src/examples/barebone_vp/target_software/syscalls.c -DETISSVP_LOGGER=0xf0000000 -o helloworld.elf
+          riscv-tc/bin/riscv64-unknown-elf-gcc -march=rv32im -mabi=ilp32 -O3 -T ${GITHUB_WORKSPACE}/etiss-sc_src/examples/barebone_vp/target_software/link.ld -nostartfiles ${GITHUB_WORKSPACE}/etiss-sc_src/examples/barebone_vp/target_software/crt0.s ${GITHUB_WORKSPACE}/etiss-sc_src/examples/barebone_vp/target_software/helloworld.c ${GITHUB_WORKSPACE}/etiss-sc_src/examples/barebone_vp/target_software/syscalls.c -DETISSVP_LOGGER=0xf0000000 -o helloworld.elf
 
       - name: Run tests
         working-directory: /etiss-sc_build
