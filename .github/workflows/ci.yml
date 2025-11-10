@@ -46,15 +46,6 @@ jobs:
           . ./etiss-sc/etiss-sc_src/docker/setup_debian.sh
           setup_env
 
-      - name: Test Requirements (RISC-V cross toolchain)
-        shell: bash
-        working-directory: ${{runner.workspace}}
-        run: |
-          TC_NAME="riscv64-unknown-elf-gcc-8.3.0-2020.04.0-x86_64-${{ matrix.config.tc }}"
-          wget https://static.dev.sifive.com/dev-tools/$TC_NAME${{ matrix.config.tc-ext }}
-          ${{ matrix.config.unpack }} $TC_NAME${{ matrix.config.tc-ext }}
-          mv ${TC_NAME} riscv-tc
-
       - name: Cache SystemC
         id: cache-systemc
         uses: actions/cache@v4
@@ -124,6 +115,67 @@ jobs:
         run: |
           cmake --build /etiss-sc_build --config ${BUILD_TYPE} --target install
 
+      - name: Upload Compiled System
+        uses: actions/upload-artifact@v5
+        with:
+          name: etiss-sc_${{ matrix.config.os_name }}-${{ matrix.config.os_version }}
+          path: /etiss-sc_install/
+          if-no-files-found: error
+ 
+  # This workflow contains a single job called "build"
+  test:
+    strategy:
+      matrix:
+        config:
+          - {os_name: "ubuntu", os_version: "latest", python: "3.9", cmakegen: "Release", systemc_version: "2.3.3"}
+          - {os_name: "ubuntu", os_version: "22.04", python: "3.9", cmakegen: "Release", systemc_version: "2.3.3"}
+
+    runs-on: ${{ matrix.config.os_name }}-${{ matrix.config.os_version }}
+    container: ${{ matrix.config.os_name }}:${{ matrix.config.os_version }}
+    name: build-${{ matrix.config.os_name }}-${{ matrix.config.os_version }}
+
+    steps:
+      - name: Install git on container
+        run: |
+          apt update
+          apt install -y git cmake
+
+      - name: Checkout vrtlmod
+        uses: actions/checkout@v4
+        with:
+          path: etiss-sc_src
+
+      - name: Fetch Compiled System
+        uses: actions/download-artifact@v5
+        with:
+          name: etiss-sc_${{ matrix.config.os_name }}-${{ matrix.config.os_version }}
+          path: /etiss-sc_install/
+
+      - name: Cache ETISS
+        id: cache-etiss
+        uses: actions/cache@v4
+        with:
+          path: /etiss_install
+          key: ${{ matrix.config.os_name }}-${{ matrix.config.os_version }}_etiss
+          restore-keys: ${{ matrix.config.os_name }}-${{ matrix.config.os_version }}_etiss
+
+      - name: Cache SystemC
+        id: cache-systemc
+        uses: actions/cache@v4
+        with:
+          path: /systemc_install
+          key: ${{ matrix.config.os_name }}-${{ matrix.config.os_version }}_systemc-${{ matrix.config.systemc_version }}
+          restore-keys: ${{ matrix.config.os_name }}-${{ matrix.config.os_version }}_systemc-${{ matrix.config.systemc_version }}
+
+      - name: Test Requirements (RISC-V cross toolchain)
+        shell: bash
+        working-directory: ${{runner.workspace}}
+        run: |
+          TC_NAME="riscv64-unknown-elf-gcc-8.3.0-2020.04.0-x86_64-${{ matrix.config.tc }}"
+          wget https://static.dev.sifive.com/dev-tools/$TC_NAME${{ matrix.config.tc-ext }}
+          ${{ matrix.config.unpack }} $TC_NAME${{ matrix.config.tc-ext }}
+          mv ${TC_NAME} riscv-tc
+
       - name: Create Test Environment
         run: |
           cmake -E make_directory ${{runner.workspace}}/test
@@ -136,4 +188,4 @@ jobs:
       - name: Run tests
         working-directory: /etiss-sc_build
         run: |
-          example/barebone_vp --etiss ${GITHUB_WORKSPACE}/examples/barebone_vp/ini/etiss.ini --elfs ${{runner.workspace}}/test/helloworld.elf
+          /etiss-sc_install/example/barebone_vp --etiss ${GITHUB_WORKSPACE}/etiss-sc_src/examples/barebone_vp/ini/etiss.ini --elfs ${{runner.workspace}}/test/helloworld.elf
