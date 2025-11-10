@@ -47,7 +47,6 @@ jobs:
           setup_env
 
       - name: Test Requirements (RISC-V cross toolchain)
-        if: matrix.config.name == 'Linux'
         shell: bash
         working-directory: ${{runner.workspace}}
         run: |
