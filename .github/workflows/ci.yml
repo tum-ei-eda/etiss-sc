@@ -127,8 +127,8 @@ jobs:
     strategy:
       matrix:
         config:
-          - {os_name: "ubuntu", os_version: "latest", python: "3.9", cmakegen: "Release", systemc_version: "2.3.3"}
-          - {os_name: "ubuntu", os_version: "22.04", python: "3.9", cmakegen: "Release", systemc_version: "2.3.3"}
+          - {os_name: "ubuntu", os_version: "latest", python: "3.9", cmakegen: "Release", systemc_version: "2.3.3", tc: "linux-ubuntu14", tc-ext: ".tar.gz", unpack: "tar xf"}
+          - {os_name: "ubuntu", os_version: "22.04", python: "3.9", cmakegen: "Release", systemc_version: "2.3.3", tc: "linux-ubuntu14", tc-ext: ".tar.gz", unpack: "tar xf"}
 
     runs-on: ${{ matrix.config.os_name }}-${{ matrix.config.os_version }}
     container: ${{ matrix.config.os_name }}:${{ matrix.config.os_version }}
@@ -139,7 +139,7 @@ jobs:
       - name: Install git on container
         run: |
           apt update
-          apt install -y git cmake wget
+          apt install -y git cmake wget tar
 
       - name: Checkout etiss-sc
         uses: actions/checkout@v4
