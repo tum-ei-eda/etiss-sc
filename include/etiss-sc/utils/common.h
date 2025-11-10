@@ -24,6 +24,7 @@
 
 #include <memory>
 #include <utility>
+#include <fstream>
 
 #include "etiss/ETISS.h"
 #include "systemc"
