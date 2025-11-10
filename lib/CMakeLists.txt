@@ -17,68 +17,15 @@
 cmake_minimum_required(VERSION 3.15 FATAL_ERROR)
 include(FetchContent)
 
-if(NOT TARGET scc) # etiss-sc is standalone, i.e. not embedded alongside scc in a project
-    FetchContent_Declare(
-        scc
-        GIT_REPOSITORY https://github.com/VP-Vibes/SystemC-Components.git
-        GIT_TAG        6b6e810
-    )
-    FetchContent_GetProperties(scc)
-    if(NOT scc_POPULATED)
-        FetchContent_Populate(scc)
-    endif()
+####################################################################################################
+# FMT before SCC
+add_subdirectory(fmt)
 
-    list(APPEND CMAKE_MODULE_PATH ${scc_SOURCE_DIR}/cmake PARENT_SCOPE)
-
-    include(ConanInline)
-    set(CONAN_OPTIONS
-        boost:shared=True
-        boost:header_only=False
-        fmt:header_only=True
-    )
-
-    set(CONAN_PACKAGE_LIST
-        fmt/6.1.2
-        zlib/1.2.11
-    )
-    set(CONAN_PACKAGE_OPTIONS ${CONAN_OPTIONS})
-
-    if(NOT USE_CWR_SYSTEMC AND NOT USE_NCSC_SYSTEMC AND NOT DEFINED ENV{SYSTEMC_HOME})
-        set(CONAN_PACKAGE_LIST ${CONAN_PACKAGE_LIST} systemc/2.3.3 systemc-cci/1.0.0)
-        set(CONAN_PACKAGE_OPTIONS ${CONAN_PACKAGE_OPTIONS} systemc:shared=True systemc-cci:shared=True systemc:disable_virtual_bind=False)
-    endif()
-
-    conan_check()
-    conan_cmake_configure(
-        REQUIRES ${CONAN_PACKAGE_LIST}
-        GENERATORS cmake_find_package
-        OPTIONS ${CONAN_PACKAGE_OPTIONS}
-    )
-
-    conan_cmake_autodetect(settings)
-    if(CMAKE_CXX_STANDARD)
-        set(settings ${settings} compiler.cppstd=${CMAKE_CXX_STANDARD})
-    endif()
-
-    message("Conan settings are ${settings}")
-    conan_cmake_install(
-        PATH_OR_REFERENCE ${CMAKE_CURRENT_BINARY_DIR}
-        BUILD missing
-        SETTINGS ${settings}
-    )
-    set(Boost_NO_BOOST_CMAKE ON)
-
-    set(SCC_LIB_ONLY ON)
-    option(ENABLE_SCV "Enable the use of SCV" OFF)
-
-    include(${scc_SOURCE_DIR}/cmake/SystemCPackage.cmake)
-
-    list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_BINARY_DIR} PARENT_SCOPE)
-    find_package(fmt REQUIRED)
-
-    add_subdirectory(${scc_SOURCE_DIR} ${scc_BINARY_DIR})
-
-endif()
+####################################################################################################
+# SCC
+set(SCC_LIB_ONLY ON)
+option(ENABLE_SCV "Enable the use of SCV" OFF)
+add_subdirectory(scc)
 
 ####################################################################################################
 # ETISS (include before etiss-sc) Try to find from given prefix first
@@ -95,15 +42,3 @@ endif()
 if(NOT TARGET elfio::elfio AND NOT ETISS_AS_SUBMODULE)
     add_subdirectory(elfio)
 endif()
-
-####################################################################################################
-# Boost
-message("Boost_LIBRARIES: ${Boost_LIBRARIES}")
-if(NOT TARGET Boost::filesystem OR NOT TARGET Boost::program_options)
-    find_package(Boost REQUIRED
-        COMPONENTS filesystem program_options
-    )
-endif()
-set(Boost_LIBRARIES ${Boost_LIBRARIES} PARENT_SCOPE)
-set(Boost_PROGRAM_OPTIONS_LIBRARY ${Boost_PROGRAM_OPTIONS_LIBRARY} PARENT_SCOPE)
-set(Boost_FILESYSTEM_LIBRARY ${Boost_FILESYSTEM_LIBRARY} PARENT_SCOPE)

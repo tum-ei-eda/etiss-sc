@@ -60,7 +60,21 @@ endif("${isSystemDir}" STREQUAL "-1")
 
 include(GNUInstallDirs)
 ####################################################################################################
-
+# Boost
+if(NOT TARGET Boost::filesystem OR NOT TARGET Boost::program_options)
+    find_package(Boost REQUIRED
+        COMPONENTS filesystem program_options
+    )
+endif()
+set(Boost_LIBRARIES ${Boost_LIBRARIES} PARENT_SCOPE)
+set(Boost_PROGRAM_OPTIONS_LIBRARY ${Boost_PROGRAM_OPTIONS_LIBRARY} PARENT_SCOPE)
+set(Boost_FILESYSTEM_LIBRARY ${Boost_FILESYSTEM_LIBRARY} PARENT_SCOPE)
+####################################################################################################
+# SystemC
+find_package(SystemCLanguage REQUIRED)
+get_target_property(SYSTEMC_INCLUDE_DIRS SystemC::systemc INTERFACE_INCLUDE_DIRECTORIES)
+set(SystemC_LIBRARIES SystemC::systemc)
+set(SYSTEMC_INCLUDE_DIRS ${SYSTEMC_INCLUDE_DIRS}) # <-- allow propagation of vrtlmod-buildtime-systemc into vrtlmod-config.cmake script 
 ####################################################################################################
 # Add lib subdirecty, decides on standalone based on scc being present (etiss-sc is submodule), or
 # not
