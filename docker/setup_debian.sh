@@ -3,7 +3,7 @@
 # Package dependencies
 get_apt_deps() {
   etisssc_apt_dep="cmake build-essential python3 python3-virtualenv python3-dev"
-  etiss_apt_dep="libboost-filesystem-dev libboost-system-dev libboost-program-options-dev"
+  etiss_apt_dep="libboost-filesystem-dev libboost-system-dev libboost-program-options-dev libboost-date-time-dev"
   echo "${etisssc_apt_dep} ${etiss_apt_dep}"
 }
 setup_env() {
