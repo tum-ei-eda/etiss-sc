@@ -1,49 +1,50 @@
 name: CI
 
-on: [push, pull_request, workflow_dispatch]
+on:
+  push:
+    branches:
+      - master
+    tags:
+      - v*
+  pull_request:
+    branches:
+      - master
 
 env:
   BUILD_TYPE: Release
-  CONAN_CACHE_DIR: ~/.conan/data
 jobs:
   # This workflow contains a single job called "build"
   build:
     strategy:
       matrix:
         config:
-          - {name: "Linux", os: ubuntu-22.04, cmakegen: "", llvm: "linux-gnu-ubuntu-20.04", llvm-ext: ".tar.xz", tc: "linux-ubuntu14", tc-ext: ".tar.gz", unpack: "tar xf"}
+          - {os_name: "ubuntu", os_version: "latest", python: "3.9", cmakegen: "Release", systemc_version: "2.3.3"}
+          - {os_name: "ubuntu", os_version: "22.04", python: "3.9", cmakegen: "Release", systemc_version: "2.3.3"}
 
-    runs-on: ${{ matrix.config.os }}
-    name: ${{ matrix.config.name }}_build
+    runs-on: ${{ matrix.config.os_name }}-${{ matrix.config.os_version }}
+    container: ${{ matrix.config.os_name }}:${{ matrix.config.os_version }}
+    name: build-${{ matrix.config.os_name }}-${{ matrix.config.os_version }}
 
     steps:
-      - uses: actions/checkout@v4
-      - name:  Cache Conan Data
-        uses: actions/cache@v4
-        env:
-          cache-name: conan-cache
+      - name: Install git on container
+        run: |
+          apt update
+          apt install -y git
+  
+      - name: Checkout etiss-sc
+        uses: actions/checkout@v4
         with:
-          path: ${CONAN_CACHE_DIR}
-          key: ${{ runner.os }}-build-${{ env.cache-name }}
+          path: etiss-sc_src
+          submodules: true
 
-      - name:  Requirements (Linux)
-        if: matrix.config.name == 'Linux'
+      - name: Requirements (Linux)
+        if: runner.os == 'Linux'
+        continue-on-error: false
         shell: bash
         working-directory: ${{runner.workspace}}
         run: |
-          sudo apt-get update 
-          sudo apt-get install -y libboost-filesystem-dev libboost-system-dev libboost-program-options-dev
-          pip install --force-reinstall "conan==1.61.0"
-          conan user
-          if ! [[ $(conan profile list) = *default* ]]
-          then
-            conan profile new default --detect
-          fi
-          conan profile update settings.compiler.libcxx=libstdc++11 default
-          LLVM_NAME="clang+llvm-11.0.0-x86_64-${{ matrix.config.llvm }}"
-          wget https://github.com/llvm/llvm-project/releases/download/llvmorg-11.0.0/$LLVM_NAME${{ matrix.config.llvm-ext }}
-          ${{ matrix.config.unpack }} $LLVM_NAME${{ matrix.config.llvm-ext }}
-          mv $LLVM_NAME llvm-lib
+          . ./etiss-sc/etiss-sc_src/docker/setup_debian.sh
+          setup_env
 
       - name: Test Requirements (RISC-V cross toolchain)
         if: matrix.config.name == 'Linux'
@@ -54,34 +55,64 @@ jobs:
           wget https://static.dev.sifive.com/dev-tools/$TC_NAME${{ matrix.config.tc-ext }}
           ${{ matrix.config.unpack }} $TC_NAME${{ matrix.config.tc-ext }}
           mv ${TC_NAME} riscv-tc
-      
-      - name: Requirements (ETISS)
+
+      - name: Cache SystemC
+        id: cache-systemc
+        uses: actions/cache@v4
+        with:
+          path: /systemc_install
+          key: ${{ matrix.config.os_name }}-${{ matrix.config.os_version }}_systemc-${{ matrix.config.systemc_version }}
+          restore-keys: ${{ matrix.config.os_name }}-${{ matrix.config.os_version }}_systemc-${{ matrix.config.systemc_version }}
+
+      - if: ${{ steps.cache-systemc.outputs.cache-hit != 'true' }}
+        name: Requirements SystemC
+        working-directory: ${{runner.workspace}}
+        shell: bash
+        run: |
+          . ./etiss-sc/etiss-sc_src/docker/setup_debian.sh
+          setup_systemc "${{runner.workspace}}/systemc_src" "${{runner.workspace}}/systemc_build" "/systemc_install" "${{ matrix.config.systemc_version }}"
+
+      - name: Cache ETISS
+        id: cache-etiss
+        uses: actions/cache@v4
+        with:
+          path: /etiss_install
+          key: ${{ matrix.config.os_name }}-${{ matrix.config.os_version }}_etiss
+          restore-keys: ${{ matrix.config.os_name }}-${{ matrix.config.os_version }}_etiss
+
+      - if: ${{ steps.cache-etiss.outputs.cache-hit != 'true' }}
+        name: Checkout ETISS
+        uses: actions/checkout@v4
+        with:
+          path: etiss_src
+          repository: tum-ei-eda/etiss
+          ref: master
+          submodules: recursive
+
+      - if: ${{ steps.cache-etiss.outputs.cache-hit != 'true' }}
+        name: Build ETISS
         shell: bash
         working-directory: ${{runner.workspace}}
         run: |
-          git clone --recurse-submodules https://github.com/tum-ei-eda/etiss.git etiss-src
-          export LLVM_DIR=${{runner.workspace}}/llvm-lib
-          cmake -S etiss-src -B etiss-build -DCMAKE_BUILD_TYPE=${BUILD_TYPE} -DCMAKE_INSTALL_PREFIX=etiss
-          cmake --build etiss-build --config ${BUILD_TYPE} --parallel $(nproc)
-          cmake --install etiss-build --config ${BUILD_TYPE}
+          cmake -S ${GITHUB_WORKSPACE}/etiss_src -B /etiss_build -DCMAKE_BUILD_TYPE=${BUILD_TYPE} -DCMAKE_INSTALL_PREFIX=/etiss_install
+          cmake --build /etiss_build --config ${BUILD_TYPE} --parallel $(nproc)
+          cmake --install /etiss_build --config ${BUILD_TYPE}
 
       - name: Configure CMake
         shell: bash
         working-directory: ${{runner.workspace}}
         run: |
-          cmake -S ${GITHUB_WORKSPACE} -B ${{runner.workspace}}/build -DETISS_PREFIX=${{runner.workspace}}/etiss -DCMAKE_BUILD_TYPE=${BUILD_TYPE} -DCMAKE_INSTALL_PREFIX=${{runner.workspace}}/install
+          cmake -S ${GITHUB_WORKSPACE} -B /etiss-sc_build -DETISS_PREFIX=/etiss_install -DCMAKE_BUILD_TYPE=${BUILD_TYPE} -DCMAKE_INSTALL_PREFIX=/etiss-sc_install
 
       - name: Build
         shell: bash
-        working-directory: ${{runner.workspace}}/build
         run: |
-          cmake --build . --config ${BUILD_TYPE} --parallel $(nproc)
+          cmake --build /etiss-sc_build --config ${BUILD_TYPE} --parallel $(nproc)
 
       - name: Install
         shell: bash
-        working-directory: ${{runner.workspace}}/build
         run: |
-          cmake --build . --config ${BUILD_TYPE} --target install
+          cmake --build /etiss-sc_build --config ${BUILD_TYPE} --target install
 
       - name: Create Test Environment
         run: |
@@ -93,6 +124,6 @@ jobs:
           ${{runner.workspace}}/riscv-tc/bin/riscv64-unknown-elf-gcc -march=rv32im -mabi=ilp32 -O3 -T ${GITHUB_WORKSPACE}/examples/barebone_vp/target_software/link.ld -nostartfiles ${GITHUB_WORKSPACE}/examples/barebone_vp/target_software/crt0.s ${GITHUB_WORKSPACE}/examples/barebone_vp/target_software/helloworld.c ${GITHUB_WORKSPACE}/examples/barebone_vp/target_software/syscalls.c -DETISSVP_LOGGER=0xf0000000 -o helloworld.elf
 
       - name: Run tests
-        working-directory: ${{runner.workspace}}/install
+        working-directory: /etiss-sc_build
         run: |
           example/barebone_vp --etiss ${GITHUB_WORKSPACE}/examples/barebone_vp/ini/etiss.ini --elfs ${{runner.workspace}}/test/helloworld.elf
