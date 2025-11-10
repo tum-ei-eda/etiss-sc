@@ -146,6 +146,15 @@ jobs:
         with:
           path: etiss-sc_src
 
+      - name: Requirements (Linux)
+        if: runner.os == 'Linux'
+        continue-on-error: false
+        shell: bash
+        working-directory: ${{runner.workspace}}
+        run: |
+          . ./etiss-sc/etiss-sc_src/docker/setup_debian.sh
+          setup_env
+
       - name: Fetch Compiled System
         uses: actions/download-artifact@v5
         with:
