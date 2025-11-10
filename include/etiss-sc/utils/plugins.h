@@ -28,9 +28,12 @@
 #include <unordered_map>
 #include "systemc"
 
+#include "etiss/ClassDefs.h"
 #include "etiss/ETISS.h"
+#include "etiss/jit/ReturnCode.h"
 #include "etiss/IntegratedLibrary/InstructionSpecificAddressCallback.h"
 #include "etiss/IntegratedLibrary/VariableValueLogger.h"
+#include "etiss/CPUCore.h"
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 /// @brief A simple logger dedicated to print PC trace. Most accurate when Translation::MaxBlockSize

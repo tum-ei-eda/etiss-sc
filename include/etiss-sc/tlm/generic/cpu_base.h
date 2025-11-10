@@ -32,6 +32,13 @@
 #include "etiss-sc/utils/xreport.hpp"
 
 #include "etiss/ETISS.h"
+#include "etiss/ClassDefs.h"
+#include "etiss/jit/ReturnCode.h"
+
+#include "etiss/InterruptVector.h"
+#include "etiss/InterruptEnable.h"
+#include "etiss/InterruptHandler.h"
+#include "etiss/CPUCore.h"
 
 namespace etiss_sc
 {
