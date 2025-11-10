@@ -35,7 +35,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           path: etiss-sc_src
-          submodules: true
+          submodules: recursive
 
       - name: Requirements (Linux)
         if: runner.os == 'Linux'
