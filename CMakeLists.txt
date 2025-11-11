@@ -15,21 +15,21 @@
 ####################################################################################################
 
 ####################################################################################################
-# cmake project settings 
+# cmake project settings
 cmake_minimum_required(VERSION 3.15)
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_BINARY_DIR})
 list(APPEND CMAKE_PREFIX_PATH ${CMAKE_CURRENT_BINARY_DIR})
 
 if(NOT CMAKE_CXX_STANDARD)
-    set(CMAKE_CXX_STANDARD 14)
+    set(CMAKE_CXX_STANDARD 17)
 endif()
 
 project(etiss-sc VERSION 0.9)
 ####################################################################################################
 
 ####################################################################################################
-# cmake global compiler settings 
+# cmake global compiler settings
 option (FORCE_COLORED_OUTPUT "Always produce ANSI-colored output (GNU/Clang only)." True)
 if (${FORCE_COLORED_OUTPUT})
     if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
@@ -41,9 +41,9 @@ endif ()
 ####################################################################################################
 
 ####################################################################################################
-# cmake install settings 
+# cmake install settings
 if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
-    set(CMAKE_INSTALL_PREFIX "${CMAKE_CURRENT_BINARY_DIR}/installed" CACHE PATH 
+    set(CMAKE_INSTALL_PREFIX "${CMAKE_CURRENT_BINARY_DIR}/installed" CACHE PATH
         "default install path" FORCE)
 endif()
 set(CMAKE_INSTALL_LIBDIR "${CMAKE_INSTALL_PREFIX}/lib")
@@ -60,26 +60,32 @@ endif("${isSystemDir}" STREQUAL "-1")
 
 include(GNUInstallDirs)
 ####################################################################################################
-
+# Boost
+if(NOT TARGET Boost::filesystem OR NOT TARGET Boost::program_options)
+    find_package(Boost REQUIRED
+        COMPONENTS filesystem program_options
+    )
+endif()
+set(Boost_LIBRARIES ${Boost_LIBRARIES} PARENT_SCOPE)
+set(Boost_PROGRAM_OPTIONS_LIBRARY ${Boost_PROGRAM_OPTIONS_LIBRARY} PARENT_SCOPE)
+set(Boost_FILESYSTEM_LIBRARY ${Boost_FILESYSTEM_LIBRARY} PARENT_SCOPE)
+####################################################################################################
+# SystemC
+find_package(SystemCLanguage REQUIRED)
+get_target_property(SYSTEMC_INCLUDE_DIRS SystemC::systemc INTERFACE_INCLUDE_DIRECTORIES)
+set(SystemC_LIBRARIES SystemC::systemc)
+set(SYSTEMC_INCLUDE_DIRS ${SYSTEMC_INCLUDE_DIRS}) # <-- allow propagation of vrtlmod-buildtime-systemc into vrtlmod-config.cmake script 
 ####################################################################################################
 # Add lib subdirecty, decides on standalone based on scc being present (etiss-sc is submodule), or
-# not 
+# not
 add_subdirectory(lib)
 ####################################################################################################
 
-####################################################################################################
-# cmake packages 
-find_package(ETISS REQUIRED)
-find_package(elfio REQUIRED)
-find_package(Boost REQUIRED
-  COMPONENTS filesystem program_options
-)
-####################################################################################################
-
-add_library(${PROJECT_NAME} SHARED
+add_library(${PROJECT_NAME}
     src/tlm/base/vp.cpp
     src/tlm/base/soc.cpp
 
+    src/tlm/generic/cpu_base.cpp
     src/tlm/generic/cpu.cpp
     src/tlm/generic/reset_gen.cpp
     src/tlm/generic/bus.cpp
@@ -96,19 +102,26 @@ target_include_directories(${PROJECT_NAME} PUBLIC
 )
 target_link_libraries(${PROJECT_NAME} PUBLIC
     ${SystemC_LIBRARIES}
+    ${Boost_PROGRAM_OPTIONS_LIBRARY}
+    ${Boost_FILESYSTEM_LIBRARY}
     ETISS::etiss
     elfio::elfio
     scc
 )
-target_link_libraries(${PROJECT_NAME} PUBLIC
-    Boost::program_options
-    Boost::filesystem
-)
 
 add_subdirectory(examples)
 
-set_target_properties(scc PROPERTIES
-	  PUBLIC_HEADER ${CMAKE_CURRENT_SOURCE_DIR}/src/scc.h
+set_target_properties(${PROJECT_NAME} PROPERTIES
+    PUBLIC_HEADER "${CMAKE_CURRENT_SOURCE_DIR}/include/etiss-sc/etiss-sc.h"
+)
+
+install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/include/
+    DESTINATION include
+    FILES_MATCHING
+        PATTERN "*.h"
+        PATTERN "*.hpp"
+        PATTERN ".svn" EXCLUDE
+        PATTERN "dox" EXCLUDE
 )
 
 install(TARGETS ${PROJECT_NAME}

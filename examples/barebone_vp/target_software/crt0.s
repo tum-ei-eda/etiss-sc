@@ -9,7 +9,8 @@ _start:
     .option pop
     la sp, __stack_top
     add s0, sp, zero
-    call main
-    ebreak /* signal etiss to stop exit simulation */
+    call main 
+_end_loop:
+    j _end_loop /* signal etiss to stop exit simulation */
     .cfi_endproc
     .end

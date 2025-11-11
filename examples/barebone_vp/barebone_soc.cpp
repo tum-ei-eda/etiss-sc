@@ -39,7 +39,7 @@ void BareboneSoC::setup()
 
     addMem(barebone_soc_params_.mem_params_.name_, std::move(barebone_soc_params_.mem_params_), bus_name);
 
-    etiss_sc::CPU *cpu{ nullptr };
+    etiss_sc::CPUBase *cpu{ nullptr };
     try
     {
         cpu = cpus_.at(cpu_name).get();
@@ -52,6 +52,8 @@ void BareboneSoC::setup()
     {
         cpu->setupDMI(mem_base_addr);
     }
+
+    etiss_sc::SoC::wire_clk_signal(dummy_no_clk_);
 }
 
 BareboneSoCFactory::BareboneSoCFactory(const etiss_sc::Config &cfg, etiss::Initializer *etiss_init)
@@ -77,5 +79,5 @@ void BareboneSoCFactory::initParams()
 void BareboneSoCFactory::generate(sc_core::sc_module_name name)
 {
     genHelper<BareboneSoC, BareboneSoCParams, etiss_sc::SoCParams>(name, std::move(barebone_soc_params_),
-                                                                  std::move(soc_params_));
+                                                                   std::move(soc_params_));
 }

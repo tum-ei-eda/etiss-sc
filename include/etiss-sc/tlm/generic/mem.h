@@ -70,7 +70,7 @@ class Mem : public sc_core::sc_module
     void loadDataFile(const std::vector<uint8_t> &);
 
   protected:
-    std::vector<uint8_t> mem_{};
+    mutable std::vector<uint8_t> mem_{};
     std::vector<uint8_t> rst_mem_{};
 
     void garbageMem();

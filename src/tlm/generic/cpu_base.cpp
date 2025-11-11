@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 Chair of EDA, Technical University of Munich
+ * Copyright 2022 Chair of EDA, Technical University of Munich
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,28 +15,20 @@
  */
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-/// @file helloworld.c
-/// @date 2022-01-12
-/// @brief target software test file "hello world" on iss I/O
+/// @file cpu_base.cpp
+/// @date 2022-05-30
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
-#include "stdio.h"
+#include "etiss-sc/tlm/generic/cpu_base.h"
 
-#define PRINT_CHAR(LOGGER_ADDR, VAL) *(volatile char *)(LOGGER_ADDR) = (VAL)
+int etiss_sc::CPUBase::id = 0;
 
-void custom_print_string(volatile char *logger_addr, const char *string)
+etiss_sc::CPUBase::CPUBase(sc_core::sc_module_name name, CPUParams &&cpu_params)
+    : sc_core::sc_module(name), cpu_params_{ std::move(cpu_params) }, cpu_id_(CPUBase::id++)
 {
-    char *str = (char *)string;
-    while (*str)
-    {
-        PRINT_CHAR(logger_addr, *str);
-        str++;
-    }
 }
 
-int main()
+size_t etiss_sc::CPUBase::getNumIRQs() const
 {
-    custom_print_string((char *)ETISSVP_LOGGER, "Hello World! From ETISS Logger Plugin!\n");
-    printf("hello world from printf!\n");
-    return 0;
+    return cpu_params_.num_irqs_;
 }

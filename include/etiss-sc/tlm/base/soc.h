@@ -57,12 +57,14 @@ class VP;
 class SoC : public sc_core::sc_module
 {
   public:
+    void wire_clk_signal(sc_core::sc_signal<bool> &global_clk);
+
     sc_core::sc_in<bool> rst_i_{ "reset_in" };
 
     SoC(sc_core::sc_module_name, SoCParams &&);
     virtual ~SoC() = default;
 
-    const CPU &getCPU(std::string) const;
+    const CPUBase &getCPU(std::string) const;
     const Mem *getMem(std::string) const;
     sc_core::sc_signal<bool> *getIRQ(std::string, size_t);
     virtual void setup();
@@ -123,16 +125,16 @@ class SoC : public sc_core::sc_module
 
   protected:
     SoCParams soc_params_{};
-    std::map<std::string, std::unique_ptr<CPU>> cpus_{};
+    std::map<std::string, std::unique_ptr<CPUBase>> cpus_{};
     std::map<std::string, std::unique_ptr<Bus>> buses_{};
     std::map<std::string, std::unique_ptr<Mem>> mems_{};
     std::map<std::string, std::unique_ptr<scc::tlm_target_bfs_base<etiss_sc::SoC>>> pers_{};
-    std::map<const CPU *, std::vector<sc_core::sc_signal<bool>>> irqs_{};
+    std::map<const CPUBase *, std::vector<sc_core::sc_signal<bool>>> irqs_{};
 
     std::vector<std::unique_ptr<ELFIO::elfio>> elf_readers_{};
 
     virtual void addBus(std::string name, BusParams &&bus_params);
-    virtual const CPU *addCPU(CPUFactory *cpu_factory, std::string bus_name);
+    virtual const CPUBase *addCPU(CPUFactory *cpu_factory, std::string bus_name);
     virtual const Mem *addMem(std::string name, MemParams &&mem_params, std::string bus_name);
     void burnMem(Mem *);
 
