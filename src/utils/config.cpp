@@ -23,7 +23,7 @@
 
 #include "etiss-sc/utils/logging.h"
 
-#include "SimpleIni.h"
+#include <SimpleIni.h>
 #include <etiss/ETISS.h>
 #include <cassert>
 

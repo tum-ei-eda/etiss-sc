@@ -103,7 +103,7 @@ etiss_int32 etiss_sc::CPU::ResetTerminatePlugin::execute()
     if (__UNLIKELY(terminate_))
     {
         terminate_ = false;
-        return etiss::RETURNCODE::CPUFINISHED; // CPUTERMINATED;
+        return etiss::RETURNCODE::CPUFINISHED;
     }
     else
     {
@@ -269,8 +269,7 @@ void etiss_sc::CPU::setup()
     }
 
     etiss_core_->setTimer(etiss::cfg().get<bool>("etiss.timer", false));
-
-    //etiss_core_->getState()->cpuCycleTime_ps = static_cast<uint64_t>(cpi_ * etiss::cfg().get<uint64_t>("arch.cpu_cycle_time_ps", 31250));
+    align_cpu_to_systemc_time();
 }
 
 void etiss_sc::CPU::setupDMI(uint64_t addr)
@@ -437,7 +436,6 @@ void etiss_sc::CPU::execute()
 }
 
 /***************************** transactions *****************************/
-
 void etiss_sc::CPU::transaction(ETISS_CPU *cpu, uint64_t addr, uint8_t *buffer, uint32_t length, tlm::tlm_command cmd,
                                 tlm::tlm_initiator_socket<> &socket)
 {
@@ -451,11 +449,13 @@ void etiss_sc::CPU::transaction(ETISS_CPU *cpu, uint64_t addr, uint8_t *buffer, 
     auto time_offset = getTimeOffset(cpu, time_stamp);
     auto time_offset_after_update = time_offset;
 #if defined(DEBUG)
-    std::cout << "[1]???align??? " << etiss_core_->getState()->cpuTime_ps << " ps " << sc_core::sc_time_stamp() << std::endl;
+    std::cout << "[1]???align??? " << etiss_core_->getState()->cpuTime_ps << " ps " << sc_core::sc_time_stamp()
+              << std::endl;
 #endif
     progressSystemCTime(time_offset_after_update);
 #if defined(DEBUG)
-    std::cout << "[1]!!!align!!! " << etiss_core_->getState()->cpuTime_ps << " ps " << sc_core::sc_time_stamp() << std::endl;
+    std::cout << "[1]!!!align!!! " << etiss_core_->getState()->cpuTime_ps << " ps " << sc_core::sc_time_stamp()
+              << std::endl;
 #endif
     if (/*time_offset*/ time_offset_after_update == sc_core::SC_ZERO_TIME)
     {
@@ -464,7 +464,6 @@ void etiss_sc::CPU::transaction(ETISS_CPU *cpu, uint64_t addr, uint8_t *buffer, 
         time_offset = sc_core::SC_ZERO_TIME;
     }
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
     // NOTE: in case we have exceeded simulation time, we are not guaranteed that
     // the bound sockets are still in scope and hence we are returning early
     static auto sim_time =
@@ -505,18 +504,19 @@ void etiss_sc::CPU::transaction(ETISS_CPU *cpu, uint64_t addr, uint8_t *buffer, 
                 socket->b_transport(payload_, time_offset);
             }
 #if defined(DEBUG)
-            std::cout << "[3] ???align??? " << etiss_core_->getState()->cpuTime_ps << " ps " << sc_core::sc_time_stamp() << std::endl;
+            std::cout << "[3] ???align??? " << etiss_core_->getState()->cpuTime_ps << " ps " << sc_core::sc_time_stamp()
+                      << std::endl;
 #endif
             updateCPUTime(cpu, time_offset, time_stamp);
             progressSystemCTime(time_offset);
 #if defined(DEBUG)
-            std::cout << "[3] !!!align!!! " << etiss_core_->getState()->cpuTime_ps << " ps " << sc_core::sc_time_stamp() << std::endl;
+            std::cout << "[3] !!!align!!! " << etiss_core_->getState()->cpuTime_ps << " ps " << sc_core::sc_time_stamp()
+                      << std::endl;
 #endif
             return;
         }
     }
-    // std::cout << "I/F transaction not DMI" << std::hex << addr << std::dec <<std::endl;
-    //  could no do transaction via dmi for some reason so trying via bus
+    //  could not do transaction via dmi for some reason so trying via bus
     auto transport_time_offset = sc_core::SC_ZERO_TIME;
     configurePayload(addr, cmd, buffer, length);
     socket->b_transport(payload_, transport_time_offset);
@@ -526,12 +526,14 @@ void etiss_sc::CPU::transaction(ETISS_CPU *cpu, uint64_t addr, uint8_t *buffer, 
     // penalty. We need to forward this penalty to the ETISS time domain via `updateCPUTime`. And also take the penalty
     // with a wait through `progressSystemCTime`.
 #if defined(DEBUG)
-    std::cout << "[2] ???align??? " << etiss_core_->getState()->cpuTime_ps << " ps " << sc_core::sc_time_stamp() << std::endl;
+    std::cout << "[2] ???align??? " << etiss_core_->getState()->cpuTime_ps << " ps " << sc_core::sc_time_stamp()
+              << std::endl;
 #endif
     updateCPUTime(cpu, time_offset, time_stamp);
     progressSystemCTime(time_offset);
 #if defined(DEBUG)
-    std::cout << "[2] !!!align!!! " << etiss_core_->getState()->cpuTime_ps << " ps " << sc_core::sc_time_stamp() << std::endl;
+    std::cout << "[2] !!!align!!! " << etiss_core_->getState()->cpuTime_ps << " ps " << sc_core::sc_time_stamp()
+              << std::endl;
 #endif
 }
 
@@ -595,12 +597,11 @@ inline sc_core::sc_time etiss_sc::CPU::getTimeOffset(ETISS_CPU *cpu, sc_core::sc
 
 void etiss_sc::CPU::align_cpu_to_systemc_time(void)
 {
-    /// TODO: This block should be put in setup. But its fine here, because we just call this once in the switch-up routine
-    auto cpi_K = etiss::cfg().get<uint64_t>("etiss.CPI_K", 1000 );
+    auto cpi_K = etiss::cfg().get<uint64_t>("etiss.CPI_K", 1000);
     auto cpu_cycle_time = etiss::cfg().get<uint64_t>("arch.cpu_cycle_time_ps", 31250);
-    cpu_cycle_time = cpu_cycle_time*cpi_K/1000;
+    cpu_cycle_time = cpu_cycle_time * cpi_K / 1000;
     etiss_core_->getState()->cpuCycleTime_ps = cpu_cycle_time;
-    aligned_ = true;
+    aligned_ = true; ///< release the synchronization between ETISS and SystemC CPU
     /// ^^^
     updateCPUTime(etiss_core_->getState(), sc_core::SC_ZERO_TIME);
 }
@@ -619,13 +620,13 @@ void etiss_sc::CPU::updateCPUTime(ETISS_CPU *cpu, const sc_core::sc_time &time_o
 
 void etiss_sc::CPU::progressSystemCTime(sc_core::sc_time &time_offset)
 {
-    if(!aligned_)
+    if (!aligned_)
         return; // skip this. We haven't configured the RTL->ISS flow yet
 
     if (time_offset > quantum_)
     {
         wait(time_offset);
-        time_offset = sc_core::SC_ZERO_TIME; // sc_core::sc_time{ 0, sc_core::SC_PS };
+        time_offset = sc_core::SC_ZERO_TIME;
     }
 }
 

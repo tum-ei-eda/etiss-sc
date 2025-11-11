@@ -36,7 +36,9 @@ class BareboneSoCParams final
 class BareboneSoC : virtual public etiss_sc::SoC
 {
   public:
-    BareboneSoC(sc_core::sc_module_name name, BareboneSoCParams &&barebone_soc_params, etiss_sc::SoCParams &&soc_params);
+    mutable sc_core::sc_signal<bool> dummy_no_clk_{ "clk" }; ///< needed to connect CPUBase::clk_i_;
+    BareboneSoC(sc_core::sc_module_name name, BareboneSoCParams &&barebone_soc_params,
+                etiss_sc::SoCParams &&soc_params);
 
     void setup() override;
 

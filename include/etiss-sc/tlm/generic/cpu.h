@@ -36,7 +36,8 @@ namespace etiss_sc
 class CPU : public CPUBase, public ETISS_System
 {
     SC_HAS_PROCESS(CPU);
-    bool aligned_{false};
+    bool aligned_{ false };
+
   protected:
     class IRQ : public sc_core::sc_module
     {
@@ -87,6 +88,7 @@ class CPU : public CPUBase, public ETISS_System
         TERMINATED,
         STUCK
     };
+
   public:
     void set_terminate_callback(std::function<void(CPUStatus)> func) { terminate_callback_ = func; }
 

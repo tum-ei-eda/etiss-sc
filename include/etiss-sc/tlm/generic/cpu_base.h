@@ -32,6 +32,13 @@
 #include "etiss-sc/utils/xreport.hpp"
 
 #include "etiss/ETISS.h"
+#include "etiss/ClassDefs.h"
+#include "etiss/jit/ReturnCode.h"
+
+#include "etiss/InterruptVector.h"
+#include "etiss/InterruptEnable.h"
+#include "etiss/InterruptHandler.h"
+#include "etiss/CPUCore.h"
 
 namespace etiss_sc
 {
@@ -48,7 +55,8 @@ class CPUParams
 class CPUBase : public sc_core::sc_module
 {
   protected:
-    sc_core::sc_time cpu_time_ps_{0, sc_core::SC_PS};
+    sc_core::sc_time cpu_time_ps_{ 0, sc_core::SC_PS };
+
   public:
     sc_core::sc_in<bool> rst_i_{ "reset_in" };
     sc_core::sc_in<bool> clk_i_{ "clock_in" };

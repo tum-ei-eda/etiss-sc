@@ -5,19 +5,18 @@ SystemC/TLM2.0 productivity library wrapping the Extendable Instruction Set Simu
 ## Install
 ### Dependencies
 Requires the following dependencies
-1. [ETISS](https://github.com/tum-ei-eda/etiss.git) - tested with [36902d32ae760aa3c413ca06189e6515bc28d79c](https://github.com/tum-ei-eda/etiss/commit/36902d32ae760aa3c413ca06189e6515bc28d79c)
+1. [ETISS](https://github.com/tum-ei-eda/etiss.git) - tested with [0e9a9c8738bada27b840795b7cfdaa6c7e4e1a44](https://github.com/tum-ei-eda/etiss/commit/0e9a9c8738bada27b840795b7cfdaa6c7e4e1a44)
 
 the following infrastructure
 1. gcc - tested with v9.3.0
 2. cmake (>= 3.15)
-3. [conan - tested with v1.40.3]
 
 ### Standalone
 
 ####  Build
 After cloning the repo and entering into it:
 ```
-cmake -S . -B build -DETISS_PREFIX=<path/to/etiss/install> [-DCMAKE_BUILD_TYPE={...}]
+cmake -S . -B build -DETISS_PREFIX=<path/to/etiss/install> -DSystemCLanguage_DIR=/path/to/systemc/lib/cmake/SystemCLanguage [-DCMAKE_BUILD_TYPE={...}]
 cmake --build build [--parallel $(nproc)]
 ```
 

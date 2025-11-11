@@ -28,6 +28,14 @@ etiss_sc::SoC::SoC(sc_core::sc_module_name name, etiss_sc::SoCParams &&soc_param
 {
 }
 
+void etiss_sc::SoC::wire_clk_signal(sc_core::sc_signal<bool> &global_clk)
+{
+    for (auto &[cpuname, cpu_ptr] : cpus_)
+    {
+        cpu_ptr->clk_i_(global_clk);
+    }
+}
+
 const etiss_sc::CPUBase &etiss_sc::SoC::getCPU(std::string name) const
 {
     CPUBase *cpu{ nullptr };

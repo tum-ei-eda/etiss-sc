@@ -1,0 +1,9 @@
+[submodule "lib/elfio"]
+	path = lib/elfio
+	url = https://github.com/serge1/ELFIO.git
+[submodule "lib/scc"]
+	path = lib/scc
+	url = https://github.com/VP-Vibes/SystemC-Components.git
+[submodule "lib/fmt"]
+	path = lib/fmt
+	url = git@github.com:fmtlib/fmt.git

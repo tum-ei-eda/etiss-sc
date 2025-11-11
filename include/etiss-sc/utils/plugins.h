@@ -28,9 +28,12 @@
 #include <unordered_map>
 #include "systemc"
 
+#include "etiss/ClassDefs.h"
 #include "etiss/ETISS.h"
+#include "etiss/jit/ReturnCode.h"
 #include "etiss/IntegratedLibrary/InstructionSpecificAddressCallback.h"
 #include "etiss/IntegratedLibrary/VariableValueLogger.h"
+#include "etiss/CPUCore.h"
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 /// @brief A simple logger dedicated to print PC trace. Most accurate when Translation::MaxBlockSize
@@ -63,7 +66,7 @@ class TracePrinter : public etiss::CoroutinePlugin
             if (++hitTimes_ == terminateHit_)
             {
                 printLog();
-                return etiss::RETURNCODE::CPUFINISHED;//CPUTERMINATED;
+                return etiss::RETURNCODE::CPUFINISHED;
             }
         }
         return etiss::RETURNCODE::NOERROR;
@@ -144,7 +147,7 @@ class EXIT_ON_INFLOOP : public etiss::CoroutinePlugin
             pffs.flush();
             pffs.close();
 
-            return etiss::RETURNCODE::CPUFINISHED;//CPUTERMINATED;
+            return etiss::RETURNCODE::CPUFINISHED;
         }
         return etiss::RETURNCODE::NOERROR;
     }

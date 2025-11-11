@@ -1,0 +1,13 @@
+diff --git a/src/common/util/io-redirector.h b/src/common/util/io-redirector.h
+index 16a949ba..522123cc 100644
+--- a/src/common/util/io-redirector.h
++++ b/src/common/util/io-redirector.h
+@@ -20,6 +20,8 @@
+ #include <fcntl.h>
+ #include <mutex>
+ #include <stdio.h>
++/// GCC>13
++#include <string>
+ 
+ /**
+  * \ingroup scc-common

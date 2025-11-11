@@ -31,7 +31,7 @@ BareboneVPDefaultConfig::BareboneVPDefaultConfig()
     set("bus.type", 2);
     // CPU
     set("cpu.name", "rv32core");
-    set("cpu.arch", "RISCV");
+    set("cpu.arch", "RV32IMACFD");
     set("cpu.irqs", 12); // only RISC-V defined interrupt lines, no custom platform feed!
     // MEM
     set("mem.name", "mem");
@@ -68,5 +68,5 @@ void BareboneVPFactory::initParams()
 void BareboneVPFactory::generate(sc_core::sc_module_name name)
 {
     genHelper<BareboneVP, BareboneVPParams, etiss_sc::VPParams>(name, std::move(barebone_vp_params_),
-                                                               std::move(vp_params_));
+                                                                std::move(vp_params_));
 }

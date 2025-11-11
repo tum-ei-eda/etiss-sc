@@ -25,10 +25,19 @@
 #
 #  ETISS::etiss - The etiss library
 
+#find_library(ETISS_LIBRARY
+#    NAMES ETISS
+#    PATHS ${ETISS_PREFIX} ${ETISS_HOME}
+#    PATH_SUFFIXES lib
+#)
+
+set(ETISS_DIR "${ETISS_PREFIX}/lib/CMake/ETISS")
+set(ETISS_DISABLE_COMPILERFLAGS ON)
+find_package(ETISS CONFIG REQUIRED)
+
 find_library(ETISS_LIBRARY
     NAMES ETISS
-    PATHS ${ETISS_PREFIX} ${ETISS_HOME}
-    PATH_SUFFIXES lib
+    PATHS ${ETISS_LIB_DIR}
 )
 
 if(NOT ETISS_LIBRARY)
@@ -41,13 +50,15 @@ else()
         "ETISS libraries found: ${ETISS_LIB_PATH}."
     )
     find_path(ETISS_INCLUDE_DIR
-        NAMES etiss
+        NAMES etiss third_party
         PATHS ${ETISS_LIB_PATH}/..
         PATH_SUFFIXES include
     )
-
+    message(INFO
+        "ETISS include path: ${ETISS_INCLUDE_DIR}."
+    )
     set(ETISS_FOUND TRUE)
-    set(ETISS_INCLUDE_DIRS ${ETISS_INCLUDE_DIR})
+    set(ETISS_INCLUDE_DIRS ${ETISS_INCLUDE_DIRS})
     set(ETISS_LIBRARIES ${ETISS_LIBRARY})
 
     include(FindPackageHandleStandardArgs)
@@ -55,12 +66,15 @@ else()
         FOUND_VAR ETISS_FOUND
         REQUIRED_VARS ETISS_INCLUDE_DIRS ETISS_LIBRARIES
     )
+    message("ETISS_INCLUDE_DIRS: ${ETISS_INCLUDE_DIRS}.")
+    message("ETISS_LIBRARIES: ${ETISS_LIBRARIES}.")
+    add_library(ETISS INTERFACE IMPORTED GLOBAL)
+    set_target_properties(ETISS PROPERTIES
+        INTERFACE_INCLUDE_DIRECTORIES "${ETISS_INCLUDE_DIRS}"
+        INTERFACE_LINK_LIBRARIES "${ETISS_LIBRARIES}"
+    )
 
     if (NOT TARGET ETISS::etiss)
-        add_library(ETISS::etiss INTERFACE IMPORTED)
-        set_target_properties(ETISS::etiss PROPERTIES
-            INTERFACE_INCLUDE_DIRECTORIES "${ETISS_INCLUDE_DIRS}"
-            INTERFACE_LINK_LIBRARIES "${ETISS_LIBRARIES}"
-        )
+        add_library(ETISS::etiss ALIAS ETISS)
     endif()
 endif()

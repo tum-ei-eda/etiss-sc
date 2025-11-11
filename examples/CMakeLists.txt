@@ -15,6 +15,6 @@
 ####################################################################################################
 
 cmake_minimum_required(VERSION 3.5 FATAL_ERROR)
-project(exmaples VERSION 0.1)
+project(examples VERSION 0.1)
 
 add_subdirectory(barebone_vp)
