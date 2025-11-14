@@ -28,11 +28,9 @@
 #define __LIKELY(x) __builtin_expect(!!(x), 1)
 #define __UNLIKELY(x) __builtin_expect(!!(x), 0)
 
-// etiss_int32
-void system_call_syncTime(void *handle, ETISS_CPU *cpu)
+etiss_int32 system_call_syncTime(void *handle, ETISS_CPU *cpu)
 {
-    // return
-    static_cast<etiss_sc::CPU *>(handle)->systemCallSyncTime(cpu);
+    return static_cast<etiss_sc::CPU *>(handle)->systemCallSyncTime(cpu);
 }
 
 etiss_int32 system_call_iread(void *handle, ETISS_CPU *cpu, etiss_uint64 addr, etiss_uint32 length)
@@ -241,6 +239,9 @@ void etiss_sc::CPU::setup()
 
     if (etiss_core_->getInterruptVector())
     {
+        // irq_handler_ = std::make_shared<etiss::InterruptHandler>(
+        //     etiss_core_->getInterruptVector(), etiss_core_->getArch(), cpu_params_.irq_handler_type_, false);
+
         irq_handler_ = std::make_shared<etiss::InterruptHandler>(
             etiss_core_->getInterruptVector(), etiss_core_->getInterruptEnable(), etiss_core_->getArch(),
             cpu_params_.irq_handler_type_, false);
@@ -290,25 +291,22 @@ void etiss_sc::CPU::bindIRQ(size_t id, sc_core::sc_signal<bool> &irq) const
     irq_i_[id]->irq_i_.bind(irq);
 }
 
-// etiss_int32
-void etiss_sc::CPU::systemCallSyncTime(ETISS_CPU *cpu)
+etiss_int32 etiss_sc::CPU::systemCallSyncTime(ETISS_CPU *cpu)
 {
     etiss_int32 ret = reset_terminate_handler_->execute();
-    if (__UNLIKELY(ret == etiss::RETURNCODE::CPUFINISHED))
+    if(__UNLIKELY(ret == etiss::RETURNCODE::CPUFINISHED))
     {
-        //    return ret;
+        return ret;
     }
     else
     {
         auto time_offset = getTimeOffset(cpu);
         // std::cout << "ETISS_CPU: systemCallSyncTime" << time_offset << std::endl;
-        // std::cout << "[0]???align??? " << etiss_core_->getState()->cpuTime_ps << " ps " << sc_core::sc_time_stamp()
-        // << std::endl;
+        //std::cout << "[0]???align??? " << etiss_core_->getState()->cpuTime_ps << " ps " << sc_core::sc_time_stamp() << std::endl;
         progressSystemCTime(time_offset);
-        // std::cout << "[0]!!!align??? " << etiss_core_->getState()->cpuTime_ps << " ps " << sc_core::sc_time_stamp()
-        // << std::endl;
+        //std::cout << "[0]!!!align??? " << etiss_core_->getState()->cpuTime_ps << " ps " << sc_core::sc_time_stamp() << std::endl;
     }
-    // return etiss::RETURNCODE::NOERROR;
+    return etiss::RETURNCODE::NOERROR;
 }
 
 etiss_int32 etiss_sc::CPU::systemCallIRead(ETISS_CPU *cpu, etiss_uint64 addr, etiss_uint32 length)
@@ -373,6 +371,7 @@ etiss_int32 etiss_sc::CPU::systemCallDWrite(ETISS_CPU *cpu, etiss_uint64 addr, e
         return return_val;
     }
 
+    // std::cout << "I/F syscall dwrite " << std::hex << addr << std::dec <<std::endl;
     transaction(cpu, addr, buffer, length, tlm::TLM_WRITE_COMMAND, *data_sock_i_);
     auto response = payload_.get_response_status();
     if (response != tlm::TLM_OK_RESPONSE)
@@ -517,7 +516,7 @@ void etiss_sc::CPU::transaction(ETISS_CPU *cpu, uint64_t addr, uint8_t *buffer, 
             return;
         }
     }
-    //  could no do transaction via dmi for some reason so trying via bus
+    //  could not do transaction via dmi for some reason so trying via bus
     auto transport_time_offset = sc_core::SC_ZERO_TIME;
     configurePayload(addr, cmd, buffer, length);
     socket->b_transport(payload_, transport_time_offset);

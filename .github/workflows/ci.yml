@@ -76,7 +76,7 @@ jobs:
         with:
           path: etiss_src
           repository: tum-ei-eda/etiss
-          ref: master
+          ref: feature/enable_systemwrapper_synctime_exceptions
           submodules: recursive
 
       - if: ${{ steps.cache-etiss.outputs.cache-hit != 'true' }}

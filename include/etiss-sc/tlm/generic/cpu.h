@@ -80,7 +80,6 @@ class CPU : public CPUBase, public ETISS_System
         bool reset_{ false };
         bool terminate_{ false };
     };
-
   public:
     enum class CPUStatus
     {
@@ -102,7 +101,7 @@ class CPU : public CPUBase, public ETISS_System
     void setupDMI(uint64_t addr) override;
     void bindIRQ(size_t id, sc_core::sc_signal<bool> &irq) const;
 
-    virtual void systemCallSyncTime(ETISS_CPU *cpu);
+    virtual etiss_int32 systemCallSyncTime(ETISS_CPU *cpu);
     virtual etiss_int32 systemCallIRead(ETISS_CPU *cpu, etiss_uint64 addr, etiss_uint32 length);
     virtual etiss_int32 systemCallIWrite(ETISS_CPU *cpu, etiss_uint64 addr, etiss_uint8 *buffer, etiss_uint32 length);
     virtual etiss_int32 systemCallDRead(ETISS_CPU *cpu, etiss_uint64 addr, etiss_uint8 *buffer, etiss_uint32 length);

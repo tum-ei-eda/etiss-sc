@@ -23,8 +23,8 @@
 
 #include "etiss-sc/utils/logging.h"
 
-#include <etiss/ETISS.h>
 #include <SimpleIni.h>
+#include <etiss/ETISS.h>
 #include <cassert>
 
 static bool g_argsset = false;
