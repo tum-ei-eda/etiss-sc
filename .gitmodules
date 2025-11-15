@@ -6,4 +6,4 @@
 	url = https://github.com/VP-Vibes/SystemC-Components.git
 [submodule "lib/fmt"]
 	path = lib/fmt
-	url = git@github.com:fmtlib/fmt.git
+	url = https://github.com/fmtlib/fmt.git
