@@ -28,11 +28,9 @@
 #define __LIKELY(x) __builtin_expect(!!(x), 1)
 #define __UNLIKELY(x) __builtin_expect(!!(x), 0)
 
-// etiss_int32
-void system_call_syncTime(void *handle, ETISS_CPU *cpu)
+etiss_int32 system_call_syncTime(void *handle, ETISS_CPU *cpu)
 {
-    // return
-    static_cast<etiss_sc::CPU *>(handle)->systemCallSyncTime(cpu);
+     return static_cast<etiss_sc::CPU *>(handle)->systemCallSyncTime(cpu);
 }
 
 etiss_int32 system_call_iread(void *handle, ETISS_CPU *cpu, etiss_uint64 addr, etiss_uint32 length)
@@ -290,13 +288,12 @@ void etiss_sc::CPU::bindIRQ(size_t id, sc_core::sc_signal<bool> &irq) const
     irq_i_[id]->irq_i_.bind(irq);
 }
 
-// etiss_int32
-void etiss_sc::CPU::systemCallSyncTime(ETISS_CPU *cpu)
+etiss_int32 etiss_sc::CPU::systemCallSyncTime(ETISS_CPU *cpu)
 {
     etiss_int32 ret = reset_terminate_handler_->execute();
     if (__UNLIKELY(ret == etiss::RETURNCODE::CPUFINISHED))
     {
-        //    return ret;
+        return ret;
     }
     else
     {
@@ -308,7 +305,7 @@ void etiss_sc::CPU::systemCallSyncTime(ETISS_CPU *cpu)
         // std::cout << "[0]!!!align??? " << etiss_core_->getState()->cpuTime_ps << " ps " << sc_core::sc_time_stamp()
         // << std::endl;
     }
-    // return etiss::RETURNCODE::NOERROR;
+    return etiss::RETURNCODE::NOERROR;
 }
 
 etiss_int32 etiss_sc::CPU::systemCallIRead(ETISS_CPU *cpu, etiss_uint64 addr, etiss_uint32 length)
