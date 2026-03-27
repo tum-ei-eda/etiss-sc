@@ -84,7 +84,11 @@ jobs:
         shell: bash
         working-directory: ${{runner.workspace}}
         run: |
-          cmake -S ${GITHUB_WORKSPACE}/etiss_src -B /etiss_build -DCMAKE_BUILD_TYPE=${BUILD_TYPE} -DCMAKE_INSTALL_PREFIX=/etiss_install
+          cmake -S ${GITHUB_WORKSPACE}/etiss_src \
+            -B /etiss_build \
+            -D CMAKE_BUILD_TYPE=${BUILD_TYPE} \
+            -D CMAKE_INSTALL_PREFIX=/etiss_install \
+            -D ETISS_ENABLE_SYNCTIME_EXCEPTIONS=On
           cmake --build /etiss_build --config ${BUILD_TYPE} --parallel $(nproc)
           cmake --install /etiss_build --config ${BUILD_TYPE}
 
