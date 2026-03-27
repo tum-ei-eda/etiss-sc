@@ -26,6 +26,10 @@ if(NOT CMAKE_CXX_STANDARD)
 endif()
 
 project(etiss-sc VERSION 0.9)
+
+# etiss-sc embeds bundled libraries that are later linked into shared objects
+# such as libscc-shared.so, so targets created in this subtree need PIC.
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 ####################################################################################################
 
 ####################################################################################################

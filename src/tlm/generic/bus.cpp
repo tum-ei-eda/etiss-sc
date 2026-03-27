@@ -49,10 +49,6 @@ etiss_sc::Bus::Bus(sc_core::sc_module_name name, BusParams &&params)
 
     for (size_t i = 0; i < master_sock_i_.size(); ++i)
     {
-        master_sock_i_[i] = std::make_unique<tlm_utils::simple_initiator_socket_tagged<Bus>>(
-            std::string{ "master_sock_" + std::to_string(i) }.c_str());
-        master_sock_i_[i]->register_invalidate_direct_mem_ptr(this, &Bus::invalidate_direct_mem_ptr, i);
-
         mapping_.emplace_back(nullptr);
     }
 }
@@ -75,7 +71,7 @@ void etiss_sc::Bus::b_transport(int id, tlm::tlm_generic_payload &gp, sc_core::s
     if (port_id >= 0)
     {
         gp.set_address(offset);
-        (*master_sock_i_[port_id])->b_transport(gp, t);
+        master_sock_i_[port_id]->b_transport(gp, t);
     }
     else
     {
@@ -90,7 +86,7 @@ unsigned etiss_sc::Bus::transport_dbg(int id, tlm::tlm_generic_payload &gp)
     if (port_id >= 0)
     {
         gp.set_address(offset);
-        return (*master_sock_i_[port_id])->transport_dbg(gp);
+        return master_sock_i_[port_id]->transport_dbg(gp);
     }
     else
     {
@@ -106,7 +102,7 @@ bool etiss_sc::Bus::get_direct_mem_ptr(int id, tlm::tlm_generic_payload &gp, tlm
     if (port_id >= 0)
     {
         gp.set_address(offset);
-        auto result = (*master_sock_i_[port_id])->get_direct_mem_ptr(gp, dmi_data);
+        auto result = master_sock_i_[port_id]->get_direct_mem_ptr(gp, dmi_data);
         updateRange(port_id, dmi_data);
         return result;
     }
@@ -125,32 +121,6 @@ void etiss_sc::Bus::invalidate_direct_mem_ptr(int id, sc_dt::uint64 start, sc_dt
         (*slave_sock_t_[i])
             ->invalidate_direct_mem_ptr(mapping_[id]->local2Global(start), mapping_[id]->local2Global(end));
     }
-}
-
-void etiss_sc::Bus::connectMaster(tlm::tlm_base_initiator_socket<> *sock)
-{
-    if (num_masters_connected_ == params_.num_masters_)
-    {
-        XREPORT_FATAL("not enough master socket in Bus::connectMaster()");
-    }
-
-    sock->bind(*slave_sock_t_[num_masters_connected_++]);
-}
-
-void etiss_sc::Bus::connectSlave(tlm::tlm_base_target_socket<> *sock, uint64_t start_addr, uint64_t end_addr)
-{
-    if (!sock)
-    {
-        XREPORT_FATAL("sock=0 in Bus::connectSlave()");
-    }
-
-    if (num_slaves_connected_ == params_.num_slaves_)
-    {
-        XREPORT_FATAL("not enough sockets in Bus::connectSlave");
-    }
-
-    master_sock_i_[num_slaves_connected_]->bind(*sock);
-    setMapping(num_slaves_connected_++, start_addr, end_addr);
 }
 
 void etiss_sc::Bus::setMapping(int id, uint64_t start, uint64_t end)
