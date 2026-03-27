@@ -19,6 +19,7 @@ include(FetchContent)
 
 ####################################################################################################
 # FMT before SCC
+set(FMT_INSTALL ON CACHE BOOL "Generate install/export targets for the bundled fmt build." FORCE)
 add_subdirectory(fmt)
 set(ETISS_SC_FMT_CONFIG_DIR "${CMAKE_CURRENT_BINARY_DIR}/fmt-package")
 file(MAKE_DIRECTORY "${ETISS_SC_FMT_CONFIG_DIR}")
@@ -32,6 +33,48 @@ file(WRITE "${ETISS_SC_FMT_CONFIG_DIR}/fmt-config.cmake" [=[
 include("${CMAKE_CURRENT_LIST_DIR}/fmtConfig.cmake")
 ]=])
 set(fmt_DIR "${ETISS_SC_FMT_CONFIG_DIR}" CACHE PATH "Path to the bundled fmt CMake package." FORCE)
+
+####################################################################################################
+# SPDLOG before SCC
+set(SPDLOG_FMT_EXTERNAL ON CACHE BOOL "Use the bundled fmt package from etiss-sc/lib." FORCE)
+set(SPDLOG_INSTALL ON CACHE BOOL "Generate install/export targets for the bundled spdlog build." FORCE)
+add_subdirectory(spdlog)
+set(ETISS_SC_SPDLOG_CONFIG_DIR "${CMAKE_CURRENT_BINARY_DIR}/spdlog-package")
+file(MAKE_DIRECTORY "${ETISS_SC_SPDLOG_CONFIG_DIR}")
+file(WRITE "${ETISS_SC_SPDLOG_CONFIG_DIR}/spdlogConfig.cmake" [=[
+if(NOT TARGET spdlog::spdlog AND NOT TARGET spdlog::spdlog_header_only)
+  message(FATAL_ERROR "The bundled spdlog targets are unavailable.")
+endif()
+set(spdlog_FOUND TRUE)
+]=])
+file(WRITE "${ETISS_SC_SPDLOG_CONFIG_DIR}/spdlog-config.cmake" [=[
+include("${CMAKE_CURRENT_LIST_DIR}/spdlogConfig.cmake")
+]=])
+set(spdlog_DIR "${ETISS_SC_SPDLOG_CONFIG_DIR}" CACHE PATH "Path to the bundled spdlog CMake package." FORCE)
+
+####################################################################################################
+# YAML-CPP before SCC
+set(YAML_CPP_BUILD_TOOLS OFF CACHE BOOL "Disable yaml-cpp tools in the bundled etiss-sc build." FORCE)
+set(YAML_CPP_BUILD_TESTS OFF CACHE BOOL "Disable yaml-cpp tests in the bundled etiss-sc build." FORCE)
+set(YAML_CPP_INSTALL ON CACHE BOOL "Generate install/export targets for the bundled yaml-cpp build." FORCE)
+add_subdirectory(yaml-cpp)
+set(ETISS_SC_YAML_CPP_CONFIG_DIR "${CMAKE_CURRENT_BINARY_DIR}/yaml-cpp-package")
+file(MAKE_DIRECTORY "${ETISS_SC_YAML_CPP_CONFIG_DIR}")
+file(WRITE "${ETISS_SC_YAML_CPP_CONFIG_DIR}/yaml-cppConfig.cmake" [=[
+if(NOT TARGET yaml-cpp::yaml-cpp AND NOT TARGET yaml-cpp)
+  message(FATAL_ERROR "The bundled yaml-cpp targets are unavailable.")
+endif()
+set(yaml-cpp_FOUND TRUE)
+set(YAML_CPP_FOUND TRUE)
+if(NOT TARGET yaml-cpp AND TARGET yaml-cpp::yaml-cpp)
+  add_library(yaml-cpp INTERFACE IMPORTED)
+  target_link_libraries(yaml-cpp INTERFACE yaml-cpp::yaml-cpp)
+endif()
+]=])
+file(WRITE "${ETISS_SC_YAML_CPP_CONFIG_DIR}/yaml-cpp-config.cmake" [=[
+include("${CMAKE_CURRENT_LIST_DIR}/yaml-cppConfig.cmake")
+]=])
+set(yaml-cpp_DIR "${ETISS_SC_YAML_CPP_CONFIG_DIR}" CACHE PATH "Path to the bundled yaml-cpp CMake package." FORCE)
 
 ####################################################################################################
 # SCC
