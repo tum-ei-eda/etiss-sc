@@ -20,6 +20,18 @@ include(FetchContent)
 ####################################################################################################
 # FMT before SCC
 add_subdirectory(fmt)
+set(ETISS_SC_FMT_CONFIG_DIR "${CMAKE_CURRENT_BINARY_DIR}/fmt-package")
+file(MAKE_DIRECTORY "${ETISS_SC_FMT_CONFIG_DIR}")
+file(WRITE "${ETISS_SC_FMT_CONFIG_DIR}/fmtConfig.cmake" [=[
+if(NOT TARGET fmt::fmt AND NOT TARGET fmt::fmt-header-only)
+  message(FATAL_ERROR "The bundled fmt targets are unavailable.")
+endif()
+set(fmt_FOUND TRUE)
+]=])
+file(WRITE "${ETISS_SC_FMT_CONFIG_DIR}/fmt-config.cmake" [=[
+include("${CMAKE_CURRENT_LIST_DIR}/fmtConfig.cmake")
+]=])
+set(fmt_DIR "${ETISS_SC_FMT_CONFIG_DIR}" CACHE PATH "Path to the bundled fmt CMake package." FORCE)
 
 ####################################################################################################
 # SCC
