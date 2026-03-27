@@ -70,8 +70,37 @@ class Bus : public sc_core::sc_module
     virtual unsigned transport_dbg(int id, tlm::tlm_generic_payload &gp);
     virtual bool get_direct_mem_ptr(int id, tlm::tlm_generic_payload &gp, tlm::tlm_dmi &dmi_data);
     virtual void invalidate_direct_mem_ptr(int id, sc_dt::uint64 start, sc_dt::uint64 end);
-    void connectMaster(tlm::tlm_base_initiator_socket<> *sock);
-    void connectSlave(tlm::tlm_base_target_socket<> *sock, uint64_t start_addr, uint64_t end_addr);
+    template <typename SocketT>
+    void connectMaster(SocketT *sock)
+    {
+        if (!sock)
+        {
+            XREPORT_FATAL("sock=0 in Bus::connectMaster()");
+        }
+
+        if (num_masters_connected_ == params_.num_masters_)
+        {
+            XREPORT_FATAL("not enough master socket in Bus::connectMaster()");
+        }
+
+        sock->bind(*slave_sock_t_[num_masters_connected_++]);
+    }
+    template <typename SocketT>
+    void connectSlave(SocketT *sock, uint64_t start_addr, uint64_t end_addr)
+    {
+        if (!sock)
+        {
+            XREPORT_FATAL("sock=0 in Bus::connectSlave()");
+        }
+
+        if (num_slaves_connected_ == params_.num_slaves_)
+        {
+            XREPORT_FATAL("not enough sockets in Bus::connectSlave");
+        }
+
+        master_sock_i_[num_slaves_connected_]->bind(*sock);
+        setMapping(num_slaves_connected_++, start_addr, end_addr);
+    }
 
   protected:
     BusParams params_{};

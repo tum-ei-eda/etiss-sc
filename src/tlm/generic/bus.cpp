@@ -127,32 +127,6 @@ void etiss_sc::Bus::invalidate_direct_mem_ptr(int id, sc_dt::uint64 start, sc_dt
     }
 }
 
-void etiss_sc::Bus::connectMaster(tlm::tlm_base_initiator_socket<> *sock)
-{
-    if (num_masters_connected_ == params_.num_masters_)
-    {
-        XREPORT_FATAL("not enough master socket in Bus::connectMaster()");
-    }
-
-    sock->bind(*slave_sock_t_[num_masters_connected_++]);
-}
-
-void etiss_sc::Bus::connectSlave(tlm::tlm_base_target_socket<> *sock, uint64_t start_addr, uint64_t end_addr)
-{
-    if (!sock)
-    {
-        XREPORT_FATAL("sock=0 in Bus::connectSlave()");
-    }
-
-    if (num_slaves_connected_ == params_.num_slaves_)
-    {
-        XREPORT_FATAL("not enough sockets in Bus::connectSlave");
-    }
-
-    master_sock_i_[num_slaves_connected_]->bind(*sock);
-    setMapping(num_slaves_connected_++, start_addr, end_addr);
-}
-
 void etiss_sc::Bus::setMapping(int id, uint64_t start, uint64_t end)
 {
     if (mapping_[id])
