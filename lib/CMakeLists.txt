@@ -81,6 +81,9 @@ set(yaml-cpp_DIR "${ETISS_SC_YAML_CPP_CONFIG_DIR}" CACHE PATH "Path to the bundl
 set(SCC_LIB_ONLY ON)
 option(ENABLE_SCV "Enable the use of SCV" OFF)
 add_subdirectory(scc)
+# bundled SCC assembles `scc-shared` from object files, so these
+# component targets need PIC even when SCC is embedded via etiss-sc.
+set_property(TARGET scc-util scc-sysc interfaces scv-tr tlm-interfaces PROPERTY POSITION_INDEPENDENT_CODE ON)
 
 ####################################################################################################
 # ETISS (include before etiss-sc) Try to find from given prefix first
