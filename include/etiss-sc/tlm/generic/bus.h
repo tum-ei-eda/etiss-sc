@@ -55,9 +55,40 @@ class Bus : public sc_core::sc_module
         uint64_t local2Global(uint64_t addr) { return (addr + start_); }
     };
 
+    class MasterSocketIf
+    {
+      public:
+        virtual ~MasterSocketIf() = default;
+        virtual void b_transport(tlm::tlm_generic_payload &gp, sc_core::sc_time &t) = 0;
+        virtual unsigned transport_dbg(tlm::tlm_generic_payload &gp) = 0;
+        virtual bool get_direct_mem_ptr(tlm::tlm_generic_payload &gp, tlm::tlm_dmi &dmi_data) = 0;
+    };
+
+    template <unsigned int BUSWIDTH>
+    class MasterSocket final : public MasterSocketIf
+    {
+      public:
+        explicit MasterSocket(Bus &bus, size_t id, const std::string &name) : socket_{ name.c_str() }
+        {
+            socket_.register_invalidate_direct_mem_ptr(&bus, &Bus::invalidate_direct_mem_ptr, id);
+        }
+
+        void bind(tlm::tlm_base_target_socket_b<BUSWIDTH> &sock) { socket_.bind(sock); }
+
+        void b_transport(tlm::tlm_generic_payload &gp, sc_core::sc_time &t) override { socket_->b_transport(gp, t); }
+        unsigned transport_dbg(tlm::tlm_generic_payload &gp) override { return socket_->transport_dbg(gp); }
+        bool get_direct_mem_ptr(tlm::tlm_generic_payload &gp, tlm::tlm_dmi &dmi_data) override
+        {
+            return socket_->get_direct_mem_ptr(gp, dmi_data);
+        }
+
+      private:
+        tlm_utils::simple_initiator_socket_tagged<Bus, BUSWIDTH> socket_;
+    };
+
   public:
     std::vector<std::unique_ptr<tlm_utils::simple_target_socket_tagged<Bus>>> slave_sock_t_{};
-    std::vector<std::unique_ptr<tlm_utils::simple_initiator_socket_tagged<Bus>>> master_sock_i_{};
+    std::vector<std::unique_ptr<MasterSocketIf>> master_sock_i_{};
 
     Bus(sc_core::sc_module_name name, BusParams &&params);
     virtual ~Bus() = default;
@@ -85,8 +116,9 @@ class Bus : public sc_core::sc_module
 
         sock->bind(*slave_sock_t_[num_masters_connected_++]);
     }
-    template <typename SocketT>
-    void connectSlave(SocketT *sock, uint64_t start_addr, uint64_t end_addr)
+
+    template <unsigned int BUSWIDTH>
+    void connectSlave(tlm::tlm_base_target_socket_b<BUSWIDTH> *sock, uint64_t start_addr, uint64_t end_addr)
     {
         if (!sock)
         {
@@ -98,7 +130,11 @@ class Bus : public sc_core::sc_module
             XREPORT_FATAL("not enough sockets in Bus::connectSlave");
         }
 
-        master_sock_i_[num_slaves_connected_]->bind(*sock);
+        auto &master_sock = master_sock_i_[num_slaves_connected_];
+        auto sock_name = std::string{ "master_sock_" + std::to_string(num_slaves_connected_) };
+        auto typed_master_sock = std::make_unique<MasterSocket<BUSWIDTH>>(*this, num_slaves_connected_, sock_name);
+        typed_master_sock->bind(*sock);
+        master_sock = std::move(typed_master_sock);
         setMapping(num_slaves_connected_++, start_addr, end_addr);
     }
 
