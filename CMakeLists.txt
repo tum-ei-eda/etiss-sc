@@ -24,6 +24,9 @@ list(APPEND CMAKE_PREFIX_PATH ${CMAKE_CURRENT_BINARY_DIR})
 if(NOT CMAKE_CXX_STANDARD)
     set(CMAKE_CXX_STANDARD 17)
 endif()
+if(CMAKE_CXX_STANDARD LESS 17)
+    message(FATAL "Minimum C++ standard required is 17. Is [CMAKE_CXX_STANDARD=${CMAKE_CXX_STANDARD}]")
+endif()
 
 project(etiss-sc VERSION 0.9)
 
@@ -63,17 +66,6 @@ if("${isSystemDir}" STREQUAL "-1")
 endif("${isSystemDir}" STREQUAL "-1")
 
 include(GNUInstallDirs)
-####################################################################################################
-# Boost
-if(NOT TARGET Boost::filesystem OR NOT TARGET Boost::program_options)
-    find_package(Boost REQUIRED
-        COMPONENTS filesystem program_options
-    )
-endif()
-set(Boost_LIBRARIES ${Boost_LIBRARIES} PARENT_SCOPE)
-set(Boost_PROGRAM_OPTIONS_LIBRARY ${Boost_PROGRAM_OPTIONS_LIBRARY} PARENT_SCOPE)
-set(Boost_FILESYSTEM_LIBRARY ${Boost_FILESYSTEM_LIBRARY} PARENT_SCOPE)
-####################################################################################################
 # SystemC
 find_package(SystemCLanguage REQUIRED)
 get_target_property(SYSTEMC_INCLUDE_DIRS SystemC::systemc INTERFACE_INCLUDE_DIRECTORIES)
@@ -106,12 +98,13 @@ target_include_directories(${PROJECT_NAME} PUBLIC
 )
 target_link_libraries(${PROJECT_NAME} PUBLIC
     ${SystemC_LIBRARIES}
-    ${Boost_PROGRAM_OPTIONS_LIBRARY}
-    ${Boost_FILESYSTEM_LIBRARY}
     ETISS::etiss
     elfio::elfio
     scc
 )
+if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS 9)
+    target_link_libraries(${PROJECT_NAME} PUBLIC stdc++fs)
+endif()
 
 add_subdirectory(examples)
 

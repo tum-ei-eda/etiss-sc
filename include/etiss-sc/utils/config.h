@@ -22,13 +22,13 @@
 #ifndef __ETISS_SC_UTILS_CONFIG_H__
 #define __ETISS_SC_UTILS_CONFIG_H__
 
-#include <string>
-#include <unordered_map>
-#include <stdexcept>
-#include <sstream>
 #include <iostream>
-
-#include <boost/lexical_cast.hpp>
+#include <limits>
+#include <sstream>
+#include <stdexcept>
+#include <string>
+#include <type_traits>
+#include <unordered_map>
 
 namespace etiss
 {
@@ -121,11 +121,87 @@ struct to_T;
 template <typename T, cast_type_t CT>
 struct from_T;
 
+namespace detail
+{
+template <typename T>
+std::string stringify_value(const T &value)
+{
+    std::ostringstream stream;
+    if constexpr (std::is_enum<T>::value)
+    {
+        stream << static_cast<typename std::underlying_type<T>::type>(value);
+    }
+    else if constexpr (std::is_integral<T>::value && !std::is_same<T, bool>::value)
+    {
+        stream << +value;
+    }
+    else
+    {
+        stream << value;
+    }
+
+    if (!stream)
+    {
+        throw std::runtime_error("failed to convert value to string");
+    }
+    return stream.str();
+}
+
+inline void ensure_all_characters_consumed(const std::string &value, std::size_t parsed_chars)
+{
+    if (parsed_chars != value.size())
+    {
+        throw std::invalid_argument("trailing characters in value");
+    }
+}
+
+template <typename T>
+T parse_integral_value(const std::string &value)
+{
+    if constexpr (std::is_enum<T>::value)
+    {
+        using underlying_t = typename std::underlying_type<T>::type;
+        return static_cast<T>(parse_integral_value<underlying_t>(value));
+    }
+    else if constexpr (std::is_signed<T>::value)
+    {
+        std::size_t parsed_chars = 0;
+        const auto parsed = std::stoll(value, &parsed_chars, 0);
+        ensure_all_characters_consumed(value, parsed_chars);
+        if (parsed < static_cast<long long>(std::numeric_limits<T>::min()) ||
+            parsed > static_cast<long long>(std::numeric_limits<T>::max()))
+        {
+            throw std::out_of_range("integral value out of range");
+        }
+        return static_cast<T>(parsed);
+    }
+    else
+    {
+        std::size_t parsed_chars = 0;
+        const auto parsed = std::stoull(value, &parsed_chars, 0);
+        ensure_all_characters_consumed(value, parsed_chars);
+        if (parsed > static_cast<unsigned long long>(std::numeric_limits<T>::max()))
+        {
+            throw std::out_of_range("integral value out of range");
+        }
+        return static_cast<T>(parsed);
+    }
+}
+
+template <typename T>
+T parse_floating_value(const std::string &value)
+{
+    std::size_t parsed_chars = 0;
+    const auto parsed = std::stod(value, &parsed_chars);
+    ensure_all_characters_consumed(value, parsed_chars);
+    return static_cast<T>(parsed);
+}
+} // namespace detail
+
 template <typename T>
 void Config::set(const std::string &key, const T &value)
 {
     keyToValue_[key] = from_T<T, switch_type<T>()>::make(value);
-    ;
 }
 
 template <typename T>
@@ -143,12 +219,12 @@ T Config::get(const std::string &key) const
 template <typename T>
 struct from_T<T, INTEGRAL>
 {
-    static std::string make(const T &value) { return boost::lexical_cast<std::string>(value); }
+    static std::string make(const T &value) { return detail::stringify_value(value); }
 };
 template <typename T>
 struct from_T<T, FLOATING>
 {
-    static std::string make(const T &value) { return boost::lexical_cast<std::string>(value); }
+    static std::string make(const T &value) { return detail::stringify_value(value); }
 };
 template <typename T>
 struct from_T<T, BOOLEAN>
@@ -163,31 +239,28 @@ struct from_T<T, STRING>
 template <typename T>
 struct to_T<T, INTEGRAL>
 {
-    static T make(const std::string &value) {
-        T ret;
-        try {
-            ret = boost::lexical_cast< T >(value);
+    static T make(const std::string &value)
+    {
+        try
+        {
+            return detail::parse_integral_value<T>(value);
         }
-        catch(boost::bad_lexical_cast const& e)
-        {    
-            if (value.find("0x") == std::string::npos)
-            {
-                std::cout << "Error (INTEGRAL type): " << e.what() << "\n" << value << " to " << typeid(ret).name() << std::endl;
-                throw e; // exception can not be ignored throw again
-            }
+        catch (const std::exception &e)
+        {
+            std::cout << "Error (INTEGRAL type): " << e.what() << "\n" << value << std::endl;
+            throw;
         }
-        return ret; 
     }
 };
 template <typename T>
 struct to_T<T, FLOATING>
 {
-    static T make(const std::string &value) { return (T)boost::lexical_cast<double>(value); }
+    static T make(const std::string &value) { return detail::parse_floating_value<T>(value); }
 };
 template <typename T>
 struct to_T<T, BOOLEAN>
 {
-    static T make(const std::string &value) { return (T)(value != "0" || value != "false"); }
+    static T make(const std::string &value) { return static_cast<T>(value != "0" && value != "false"); }
 };
 template <typename T>
 struct to_T<T, STRING>
