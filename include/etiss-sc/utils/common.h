@@ -22,15 +22,22 @@
 #ifndef __ETISS_SC_UTILS_COMMON_H__
 #define __ETISS_SC_UTILS_COMMON_H__
 
-#include <memory>
-#include <utility>
+#include <chrono>
+#include <filesystem>
 #include <fstream>
+#include <iostream>
+#include <memory>
+#include <random>
+#include <stdexcept>
+#include <string>
+#include <system_error>
+#include <type_traits>
+#include <utility>
+#include <vector>
 
 #include "etiss/ETISS.h"
 #include "systemc"
 
-#include <boost/program_options.hpp>
-#include <boost/filesystem.hpp>
 #include "etiss-sc/utils/config.h"
 
 #define ID_ETISS_SC_FACTORY "etiss-sc: Factory"
@@ -86,8 +93,8 @@ class Factory
 template <typename argvT, typename... lisT>
 class CommandLineParser
 {
-    boost::filesystem::path temp_directory_path_;
-    boost::filesystem::path temp_config_file_path_;
+    std::filesystem::path temp_directory_path_;
+    std::filesystem::path temp_config_file_path_;
     std::vector<std::string> parsed{};
     std::vector<char *> parsed_{};
 
@@ -98,53 +105,154 @@ class CommandLineParser
         std::string log_fpath_;
     } options_{};
 
+    static std::filesystem::path make_temp_directory_path()
+    {
+        auto base = std::filesystem::temp_directory_path();
+        auto seed = static_cast<std::mt19937_64::result_type>(
+            std::chrono::high_resolution_clock::now().time_since_epoch().count());
+        std::mt19937_64 generator(seed);
+
+        for (int attempt = 0; attempt < 128; ++attempt)
+        {
+            auto candidate = base / ("etiss-sc-" + std::to_string(generator()));
+            std::error_code ec;
+            if (std::filesystem::create_directory(candidate, ec))
+            {
+                return candidate;
+            }
+        }
+
+        throw std::runtime_error("failed to create a temporary directory for etiss-sc");
+    }
+
+    static bool parse_named_option(const std::string &arg, std::string &name, std::string &value, bool &has_inline_value)
+    {
+        if (arg.rfind("--", 0) != 0 || arg.size() <= 2)
+        {
+            return false;
+        }
+
+        auto option = arg.substr(2);
+        auto equals = option.find('=');
+        if (equals == std::string::npos)
+        {
+            name = option;
+            value.clear();
+            has_inline_value = false;
+        }
+        else
+        {
+            name = option.substr(0, equals);
+            value = option.substr(equals + 1);
+            has_inline_value = true;
+        }
+        return true;
+    }
+
+    static void print_help()
+    {
+        std::cout << "Allowed options\n"
+                  << "  --help              produce help message\n"
+                  << "  --etiss <path>      etiss configuration file\n"
+                  << "  --vp <path>         virtual prototype configuration file\n"
+                  << "  --elfs <value>      ELF files to load into soc memory\n"
+                  << "  --tgdb <value>      TCP port to host gdb server\n"
+                  << "  --log <path>        optional log file path for vp reports" << std::endl;
+    }
+
   public:
-    char **get_parsed(void) { return &(parsed_[0]); }
+    char **get_parsed(void) { return parsed_.data(); }
     size_t get_parsed_size(void) { return parsed_.size(); }
 
-    std::string get_etiss_config_path(void) { return std::string("-i") + temp_config_file_path_.c_str(); }
+    std::string get_etiss_config_path(void) { return std::string("-i") + temp_config_file_path_.string(); }
     std::string get_vp_config_path(void) { return options_.vp_cfg_fpath_; }
     std::string get_log_file_path(void) { return options_.log_fpath_; }
 
     CommandLineParser(int argc, argvT **argv, lisT... args_append)
-        : temp_directory_path_(boost::filesystem::temp_directory_path() / boost::filesystem::unique_path())
+        : temp_directory_path_(make_temp_directory_path())
     {
+        (void)sizeof...(args_append);
         temp_config_file_path_ = temp_directory_path_ / "config.ini";
         std::string elf_file_paths;
         std::string remote_debug_port;
         std::cout << "temporaries:" << temp_config_file_path_ << std::endl;
 
-        boost::filesystem::create_directories(temp_directory_path_);
-        boost::program_options::options_description desc{ "Allowed options" };
-        boost::program_options::variables_map vm{};
-
-        desc.add_options()("help", "produce help message")(
-            "etiss", boost::program_options::value<std::string>(&(options_.etiss_cfg_fpath_))->default_value(""),
-            "etiss configuration file")(
-            "vp", boost::program_options::value<std::string>(&(options_.vp_cfg_fpath_))->default_value(""),
-            "virtual prototype configuration file")(
-            "elfs", boost::program_options::value<std::string>(&elf_file_paths)->default_value(""),
-            "ELF files to load into soc memory")(
-            "tgdb", boost::program_options::value<std::string>(&remote_debug_port)->default_value(""),
-            "TCP port to host gdb server")(
-            "log", boost::program_options::value<std::string>(&options_.log_fpath_)->default_value(""),
-            "optional log file path for vp reports");
-
         static_assert(std::is_same<const char, argvT>::value || std::is_same<char, argvT>::value,
                       "argv must be of type const char or char");
 
-        boost::program_options::parsed_options po =
-            boost::program_options::command_line_parser(argc, argv).options(desc).allow_unregistered().run();
-        boost::program_options::store(po, vm);
-
-        parsed = boost::program_options::collect_unrecognized(po.options, boost::program_options::include_positional);
-        parsed.insert(parsed.begin(), std::string(argv[0])); // add opt 0 = exectuable back
-
-        boost::program_options::notify(vm);
-
-        if (vm.count("help"))
+        if (argc > 0)
         {
-            std::cout << desc << std::endl;
+            parsed.emplace_back(argv[0]);
+        }
+
+        bool show_help = false;
+        for (int i = 1; i < argc; ++i)
+        {
+            const std::string arg = argv[i];
+            if (arg == "--")
+            {
+                for (++i; i < argc; ++i)
+                {
+                    parsed.emplace_back(argv[i]);
+                }
+                break;
+            }
+
+            std::string name;
+            std::string value;
+            bool has_inline_value = false;
+            if (!parse_named_option(arg, name, value, has_inline_value))
+            {
+                parsed.push_back(arg);
+                continue;
+            }
+
+            auto require_value = [&](std::string &target) {
+                if (has_inline_value)
+                {
+                    target = value;
+                    return;
+                }
+                if (i + 1 >= argc)
+                {
+                    throw std::runtime_error("missing value for option '--" + name + "'");
+                }
+                target = argv[++i];
+            };
+
+            if (name == "help")
+            {
+                show_help = true;
+            }
+            else if (name == "etiss")
+            {
+                require_value(options_.etiss_cfg_fpath_);
+            }
+            else if (name == "vp")
+            {
+                require_value(options_.vp_cfg_fpath_);
+            }
+            else if (name == "elfs")
+            {
+                require_value(elf_file_paths);
+            }
+            else if (name == "tgdb")
+            {
+                require_value(remote_debug_port);
+            }
+            else if (name == "log")
+            {
+                require_value(options_.log_fpath_);
+            }
+            else
+            {
+                parsed.push_back(arg);
+            }
+        }
+
+        if (show_help)
+        {
+            print_help();
         }
         else
         {
@@ -157,7 +265,7 @@ class CommandLineParser
         std::ifstream etiss_base_cfg_file(options_.etiss_cfg_fpath_);
         if (etiss_base_cfg_file.is_open())
         {
-            std::ofstream temp_config_file(temp_config_file_path_.c_str());
+            std::ofstream temp_config_file(temp_config_file_path_);
             if (temp_config_file.is_open())
             {
                 std::string line;
@@ -186,16 +294,16 @@ class CommandLineParser
 
         parsed_.reserve(parsed.size());
         for (size_t i = 0; i < parsed.size(); ++i)
+        {
             parsed_.push_back(const_cast<char *>(parsed[i].c_str()));
+        }
     }
 
     virtual ~CommandLineParser(void)
     {
         // remove temporary directory if still exists
-        if (boost::filesystem::exists(temp_directory_path_))
-        {
-            boost::filesystem::remove_all(temp_directory_path_);
-        }
+        std::error_code ec;
+        std::filesystem::remove_all(temp_directory_path_, ec);
     }
 };
 
